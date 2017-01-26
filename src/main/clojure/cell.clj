@@ -1,3 +1,5 @@
+(ns cell)
+
 (defrecord Cell [row column links])
 
 (defprotocol Linkable
