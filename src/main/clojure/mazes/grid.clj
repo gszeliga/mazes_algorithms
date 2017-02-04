@@ -1,12 +1,12 @@
-(ns grid)
-
-(require 'cell)
+(ns mazes.grid
+  (require [mazes.cell :as cell])
+  (import [mazes.cell.Cell]))
 
 (defn- neighbors-at [row column]
-  [[(- 1 row) column]
-   [(+ 1 row) column]
-   [row (- 1 column)]
-   [row (+ 1 column)]])
+  {:north [(- 1 row) column]
+   :south [(+ 1 row) column]
+   :west  [row (- 1 column)]
+   :east  [row (+ 1 column)]})
 
 (defn make-grid [rows columns]
   (with-meta (into [] (map
@@ -36,7 +36,10 @@
 (defn neighbors-from [grid cell]
   (let [row (:row cell)
         col (:column cell)]
-    (map #(apply cell-at grid %) (neighbors-at row col))))
+    (reduce-kv
+     (fn [m k v] (assoc m k (apply cell-at grid v)))
+     {}
+     (neighbors-at row col))))
 
 (defn rows-from [grid]
   grid)
