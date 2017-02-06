@@ -4,8 +4,10 @@
   (:gen-class))
 
 (defn do-apply [grid]
-  (for [cell (cells-from grid)
-        neighbors (neighbors-from grid cell)]
-    (link cell
-          (rand-nth (filter some? (vector (:north neighbors)
-                                          (:east neighbors)))) true)))
+  (doseq [cell (cells-from grid)]
+    (let [neighbors (neighbors-from cell grid)
+          candidates (filter some? [(:north neighbors)
+                                    (:east neighbors)])]
+      (when-not (empty? candidates)
+        (link cell (rand-nth candidates) true))))
+  grid)

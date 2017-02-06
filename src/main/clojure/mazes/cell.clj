@@ -7,8 +7,6 @@
   (link [self cell bidi])
   (unlink [self cell bidi])
   (links [self]))
-  ;This one involves north, south, east & west
-  ;(neighbors [self]))
 
 (extend-protocol Linkable
   Cell

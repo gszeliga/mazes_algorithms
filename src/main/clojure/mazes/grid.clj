@@ -33,7 +33,7 @@
         col (long (rand (n-cols grid)))]
     (cell-at grid row col)))
 
-(defn neighbors-from [grid cell]
+(defn neighbors-from [cell grid]
   (let [row (:row cell)
         col (:column cell)]
     (reduce-kv
