@@ -1,7 +1,6 @@
 (ns mazes.algorithms.binary-tree
-  (use [mazes.grid :only (cells-from neighbors-from)] :reload)
-  (require [mazes.cell :refer :all])
-  (:gen-class))
+  (use [mazes.grid :only (cells-from neighbors-from)])
+  (require [mazes.cell :refer :all]))
 
 (defn do-apply [grid]
   (doseq [cell (cells-from grid)]

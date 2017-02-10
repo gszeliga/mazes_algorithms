@@ -3,10 +3,10 @@
   (import [mazes.cell.Cell]))
 
 (defn- neighbors-at [row column]
-  {:north [(- 1 row) column]
-   :south [(+ 1 row) column]
-   :west  [row (- 1 column)]
-   :east  [row (+ 1 column)]})
+  {:north [(inc row) column]
+   :south [(dec row) column]
+   :west  [row (dec column)]
+   :east  [row (inc column)]})
 
 (defn make-grid [rows columns]
   (with-meta (into [] (map
