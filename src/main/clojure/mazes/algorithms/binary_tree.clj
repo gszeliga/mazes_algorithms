@@ -2,7 +2,7 @@
   (use [mazes.grid :only (cells-from neighbors-from)])
   (require [mazes.cell :refer :all]))
 
-(defn do-apply [grid]
+(defn visit [grid]
   (doseq [cell (cells-from grid)]
     (let [neighbors (neighbors-from cell grid)
           candidates (filter some? [(:north neighbors)

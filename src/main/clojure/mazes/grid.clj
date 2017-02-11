@@ -37,7 +37,7 @@
   (let [row (:row cell)
         col (:column cell)]
     (reduce-kv
-     (fn [m k v] (assoc m k (apply cell-at grid v)))
+     (fn [m k coord] (assoc m k (apply cell-at grid coord)))
      {}
      (neighbors-at row col))))
 
