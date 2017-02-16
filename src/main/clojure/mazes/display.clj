@@ -3,7 +3,7 @@
   (require [mazes.cell :refer :all] :reload)
   (:gen-class))
 
-(defn as-str [grid]
+(defn stringify [grid]
 
   (defn display-row-cell [row-line cell]
     (let [[row-line-top row-line-bottom] row-line
