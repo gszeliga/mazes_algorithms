@@ -43,15 +43,28 @@
   (defn setup []
     (q/background 255))
 
-  ;TODO Need to introduce the idea of "wall" which means that we must plot 'lines' instead of 'rectangles'
-  (defn plot-cell [cell]
-    (q/rect (* pixels-per-cell (:column cell))
-            (* pixels-per-cell (:row cell))
-            pixels-per-cell cell-size))
+  (defn walls-from [cell size]
+    (let [row (- (dec (n-rows grid)) (:row cell)) ;we need to invert the row because of how quil works
+          col  (:column cell)
+          x1 (* col size)
+          y1 (* row size)
+          x2 (+ x1 size)
+          y2 (+ y1 size)]
+      {:east [x2 y1 x2 y2]
+       :west [x1 y1 x1 y2]
+       :north [x1 y1 x2 y1]
+       :south [x1 y2 x2 y2]}))
+
+  (defn plot-cell-with-lines [cell]
+    (let [walls (walls-from cell pixels-per-cell)]
+      (doseq [[orientation neighbor] (neighbors-from cell grid)]
+        (when (or (nil? neighbor)
+                  (not (linked? cell neighbor)))
+          (apply q/line (orientation walls))))))
 
   (defn do-draw []
     (doseq [cell (cells-from grid)]
-      (plot-cell cell)))
+      (plot-cell-with-lines cell)))
 
   (q/defsketch sample-maze
     :size [(* (n-cols grid) pixels-per-cell)
@@ -75,7 +88,7 @@
     (doseq [cell (take 1 (drop (dec (q/frame-count)) (cells-from grid)))]
       (q/rect (* pixels-per-cell (:column cell))
               (* pixels-per-cell (:row cell))
-              pixels-per-cell cell-size)))
+              pixels-per-cell pixels-per-cell)))
 
   (q/defsketch sample-maze
     :size [(* (n-cols grid) pixels-per-cell)
