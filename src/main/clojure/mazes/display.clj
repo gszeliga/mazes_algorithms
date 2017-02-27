@@ -36,41 +36,41 @@
           (str "+" (apply str (repeat (n-cols grid) "---+")) \newline)
           (reverse (rows-from grid))))
 
-(defn draw [grid]
+(defn draw
+  ([grid] (draw grid 40))
+  ([grid pixels-per-cell]
 
-  (def pixels-per-cell 40)
+   (defn setup []
+     (q/background 255))
 
-  (defn setup []
-    (q/background 255))
+   (defn walls-from [cell size]
+     (let [row (- (dec (n-rows grid)) (:row cell)) ;we need to use the opposite row because of how quil works
+           col  (:column cell)
+           x1 (* col size)
+           y1 (* row size)
+           x2 (+ x1 size)
+           y2 (+ y1 size)]
+       {:east [x2 y1 x2 y2]
+        :west [x1 y1 x1 y2]
+        :north [x1 y1 x2 y1]
+        :south [x1 y2 x2 y2]}))
 
-  (defn walls-from [cell size]
-    (let [row (- (dec (n-rows grid)) (:row cell)) ;we need to invert the row because of how quil works
-          col  (:column cell)
-          x1 (* col size)
-          y1 (* row size)
-          x2 (+ x1 size)
-          y2 (+ y1 size)]
-      {:east [x2 y1 x2 y2]
-       :west [x1 y1 x1 y2]
-       :north [x1 y1 x2 y1]
-       :south [x1 y2 x2 y2]}))
+   (defn plot-cell-with-lines [cell]
+     (let [walls (walls-from cell pixels-per-cell)]
+       (doseq [[orientation neighbor] (neighbors-from cell grid)]
+         (when (or (nil? neighbor)
+                   (not (linked? cell neighbor)))
+           (apply q/line (orientation walls))))))
 
-  (defn plot-cell-with-lines [cell]
-    (let [walls (walls-from cell pixels-per-cell)]
-      (doseq [[orientation neighbor] (neighbors-from cell grid)]
-        (when (or (nil? neighbor)
-                  (not (linked? cell neighbor)))
-          (apply q/line (orientation walls))))))
+   (defn do-draw []
+     (doseq [cell (cells-from grid)]
+       (plot-cell-with-lines cell)))
 
-  (defn do-draw []
-    (doseq [cell (cells-from grid)]
-      (plot-cell-with-lines cell)))
-
-  (q/defsketch sample-maze
-    :size [(* (n-cols grid) pixels-per-cell)
-           (* (n-rows grid) pixels-per-cell)]
-    :setup setup
-    :draw do-draw))
+   (q/defsketch sample-maze
+     :size [(* (n-cols grid) pixels-per-cell)
+            (* (n-rows grid) pixels-per-cell)]
+     :setup setup
+     :draw do-draw)))
 
 ;TODO The idea is to end up using functinal mode: https://github.com/quil/quil/wiki/Functional-mode-%28fun-mode%29
 (defn draw-animated [grid]
