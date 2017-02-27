@@ -2,32 +2,45 @@
   (use [mazes.grid :only (rows-from cells-from neighbors-from)])
   (require [mazes.cell :refer :all]))
 
-(defn visit [grid]
-  (doseq [row (rows-from grid)]
+;TODO Maybe we should make it part of the grid
+(defn- publisher [f]
+  (fn [from to]
+    (f #{(to-id from) (to-id to)})))
 
-    (defn traverse-cells [tmp remaining]
+(defn visit
+  ([grid] (visit grid (fn [e])))
+  ([grid f]
 
-      (if-let [cell (first remaining)]
+   (def push->
+     (publisher f))
 
-        (let [neighbors (neighbors-from cell grid)
-              eastern-neighbor (:east neighbors)
-              northern-neighbor (:north neighbors)
-              visited (conj tmp cell)]
+   (doseq [row (rows-from grid)]
 
-          (if (or (nil? eastern-neighbor)         ;did we reach the most eastern cell?
-                  (and (some? northern-neighbor)  ;can we still move up?
-                       (= 0 (rand-int 2))))       ;toss a coin
-            (do
-              (when (some? northern-neighbor)
-                (let [member (rand-nth visited)]
-                  (when-let [northern-member (:north (neighbors-from member grid))]
-                    (link member northern-member))))
-              (recur [] (rest remaining)))
+     (defn traverse-cells [tmp remaining]
 
-            (do
-              (link cell eastern-neighbor)
-              (recur visited (rest remaining)))))))
+       (if-let [cell (first remaining)]
 
-    (traverse-cells [] row))
+         (let [neighbors (neighbors-from cell grid)
+               eastern-neighbor (:east neighbors)
+               northern-neighbor (:north neighbors)
+               visited (conj tmp cell)]
 
-  grid)
+           (if (or (nil? eastern-neighbor)         ;did we reach the most eastern cell?
+                   (and (some? northern-neighbor)  ;can we still move up?
+                        (= 0 (rand-int 2))))       ;toss a coin
+             (do
+               (when (some? northern-neighbor)
+                 (let [member (rand-nth visited)]
+                   (when-let [northern-member (:north (neighbors-from member grid))]
+                     (link member northern-member)
+                     (push-> member northern-member))))
+               (recur [] (rest remaining)))
+
+             (do
+               (link cell eastern-neighbor)
+               (push-> cell eastern-neighbor)
+               (recur visited (rest remaining)))))))
+
+     (traverse-cells [] row))
+
+   grid))
