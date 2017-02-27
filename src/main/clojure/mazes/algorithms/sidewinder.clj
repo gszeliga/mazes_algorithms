@@ -21,11 +21,11 @@
               (when (some? northern-neighbor)
                 (let [member (rand-nth visited)]
                   (when-let [northern-member (:north (neighbors-from member grid))]
-                    (link member northern-member true))))
+                    (link member northern-member))))
               (recur [] (rest remaining)))
 
             (do
-              (link cell eastern-neighbor true)
+              (link cell eastern-neighbor)
               (recur visited (rest remaining)))))))
 
     (traverse-cells [] row))

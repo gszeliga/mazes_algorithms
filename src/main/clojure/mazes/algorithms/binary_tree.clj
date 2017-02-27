@@ -8,5 +8,5 @@
           candidates (filter some? [(:north neighbors)
                                     (:east neighbors)])]
       (when-not (empty? candidates)
-        (link cell (rand-nth candidates) true))))
+        (link cell (rand-nth candidates)))))
   grid)
