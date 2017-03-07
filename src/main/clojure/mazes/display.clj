@@ -72,6 +72,25 @@
      :setup setup
      :draw do-draw)))
 
+(defn animate! [walls cell-size]
+
+  (defn setup []
+      ; draw will be called 60 times per second
+    (q/frame-rate 10)
+      ; set background to white colour only in the setup
+      ; otherwise each invocation of 'draw' would clear sketch completely
+    (q/background 255))
+
+  (defn do-draw []
+    (doseq [wall (take! (q/frame-count) walls)]
+      (apply q/line wall)))
+
+  (q/defsketch sample-maze
+    :size [(* (n-cols grid) cell-size)
+           (* (n-rows grid) cell-size)]
+    :setup setup
+    :draw do-draw))
+
 ;TODO The idea is to end up using functinal mode: https://github.com/quil/quil/wiki/Functional-mode-%28fun-mode%29
 (defn draw-animated [grid]
 

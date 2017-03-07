@@ -1,24 +1,24 @@
 (ns mazes.algorithms.sidewinder
   (use [mazes.grid :only (rows-from cells-from neighbors-from)])
+  (use [mazes.algorithms.events :only (tear-down-wall-emiter visiting-cell-emiter)])
   (require [mazes.cell :refer :all]))
 
-;TODO Maybe we should make it part of the grid
-(defn- publisher [f]
-  (fn [from to]
-    (f #{(to-id from) (to-id to)})))
-
 (defn visit
-  ([grid] (visit grid (fn [e])))
+  ([grid] (visit grid (fn [_])))
   ([grid f]
 
-   (def push->
-     (publisher f))
+   (def tear-down-wall
+     (tear-down-wall-emiter f))
+
+   (def visiting
+     (visiting-cell-emiter f))
 
    (doseq [row (rows-from grid)]
 
      (defn traverse-cells [tmp remaining]
 
        (if-let [cell (first remaining)]
+         (visiting cell)
 
          (let [neighbors (neighbors-from cell grid)
                eastern-neighbor (:east neighbors)
@@ -33,12 +33,12 @@
                  (let [member (rand-nth visited)]
                    (when-let [northern-member (:north (neighbors-from member grid))]
                      (link member northern-member)
-                     (push-> member northern-member))))
+                     (tear-down-wall member northern-member))))
                (recur [] (rest remaining)))
 
              (do
                (link cell eastern-neighbor)
-               (push-> cell eastern-neighbor)
+               (tear-down-wall cell eastern-neighbor)
                (recur visited (rest remaining)))))))
 
      (traverse-cells [] row))
