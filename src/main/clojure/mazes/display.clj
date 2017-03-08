@@ -82,7 +82,7 @@
     (q/background 255))
 
   (defn do-draw []
-    (doseq [wall (take! (q/frame-count) walls)]
+    (doseq [wall (poll! (q/frame-count) walls)]
       (apply q/line wall)))
 
   (q/defsketch sample-maze

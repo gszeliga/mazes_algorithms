@@ -18,12 +18,13 @@
      (defn traverse-cells [tmp remaining]
 
        (if-let [cell (first remaining)]
-         (visiting cell)
 
          (let [neighbors (neighbors-from cell grid)
                eastern-neighbor (:east neighbors)
                northern-neighbor (:north neighbors)
                visited (conj tmp cell)]
+
+           (visiting cell)
 
            (if (or (nil? eastern-neighbor)         ;did we reach the most eastern cell?
                    (and (some? northern-neighbor)  ;can we still move up?

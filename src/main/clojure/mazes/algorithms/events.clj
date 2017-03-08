@@ -11,6 +11,16 @@
   "takes from the front of queue q.  if q is empty, block until something is offer!ed into it"
   [q] (.take q))
 
+(defn poll! [n-of-elements q]
+  (defn do-poll [remaining tmp]
+    (if-not (zero? remaining)
+      (if-let [element (.poll q)]
+        (recur (dec remaining) (conj tmp element))
+        tmp)
+      tmp))
+
+  (do-poll n-of-elements []))
+
 (defn tear-down-wall-emiter [f]
   (fn [from to]
     (f {:tear-down-wall #{(to-id from) (to-id to)}})))
