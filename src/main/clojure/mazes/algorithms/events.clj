@@ -11,20 +11,25 @@
   "takes from the front of queue q.  if q is empty, block until something is offer!ed into it"
   [q] (.take q))
 
-(defn poll! [n-of-elements q]
-  (defn do-poll [remaining tmp]
-    (if-not (zero? remaining)
-      (if-let [element (.poll q)]
-        (recur (dec remaining) (conj tmp element))
-        tmp)
-      tmp))
+(defn poll!
+  [n-of-events q & only-types]
 
-  (do-poll n-of-elements []))
+  (defn do-poll [accepts? collected]
+    (if-not (= n-of-events (count collected))
+      (if-let [{event-type :type :as event} (.poll q)]
+        (recur accepts? (if (accepts? event-type) (conj collected event) collected))
+        collected)
+      collected))
 
-(defn tear-down-wall-emiter [f]
+  (defn just [events]
+    (fn [e] (or (empty? events) (contains? events e))))
+
+  (do-poll (just (set only-types)) []))
+
+(defn wall-down-emiter [f]
   (fn [from to]
-    (f {:tear-down-wall #{(to-id from) (to-id to)}})))
+    (f {:type :wall-down :values #{(to-id from) (to-id to)}})))
 
 (defn visiting-cell-emiter [f]
   (fn [cell]
-    (f {:visiting (to-id cell)})))
+    (f {:type :visiting :values (to-id cell)})))

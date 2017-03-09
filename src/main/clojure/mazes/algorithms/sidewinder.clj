@@ -1,14 +1,14 @@
 (ns mazes.algorithms.sidewinder
   (use [mazes.grid :only (rows-from cells-from neighbors-from)])
-  (use [mazes.algorithms.events :only (tear-down-wall-emiter visiting-cell-emiter)])
+  (use [mazes.algorithms.events :only (wall-down-emiter visiting-cell-emiter)])
   (require [mazes.cell :refer :all]))
 
 (defn visit
   ([grid] (visit grid (fn [_])))
   ([grid f]
 
-   (def tear-down-wall
-     (tear-down-wall-emiter f))
+   (def wall-is-down
+     (wall-down-emiter f))
 
    (def visiting
      (visiting-cell-emiter f))
@@ -34,7 +34,7 @@
                  (let [member (rand-nth visited)]
                    (when-let [northern-member (:north (neighbors-from member grid))]
                      (link member northern-member)
-                     (tear-down-wall member northern-member))))
+                     (wall-is-down member northern-member))))
                (recur [] (rest remaining)))
 
              (do
