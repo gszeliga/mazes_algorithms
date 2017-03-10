@@ -3,7 +3,8 @@
                           neighbors-from
                           n-cols
                           n-rows
-                          cells-from)])
+                          cells-from)]
+       [mazes.algorithms.events :only (poll!)])
 
   (require [mazes.cell :refer :all] :reload
            [quil.core :as q :include-macros true])
@@ -36,6 +37,19 @@
           (str "+" (apply str (repeat (n-cols grid) "---+")) \newline)
           (reverse (rows-from grid))))
 
+(defn- walls-at [grid]
+  (fn [cell size]
+    (let [row (- (dec (n-rows grid)) (:row cell)) ;we need to use the opposite row because of how quil works
+          col  (:column cell)
+          x1 (* col size)
+          y1 (* row size)
+          x2 (+ x1 size)
+          y2 (+ y1 size)]
+      {:east [x2 y1 x2 y2]
+       :west [x1 y1 x1 y2]
+       :north [x1 y1 x2 y1]
+       :south [x1 y2 x2 y2]})))
+
 (defn draw
   ([grid] (draw grid 40))
   ([grid pixels-per-cell]
@@ -43,20 +57,10 @@
    (defn setup []
      (q/background 255))
 
-   (defn walls-from [cell size]
-     (let [row (- (dec (n-rows grid)) (:row cell)) ;we need to use the opposite row because of how quil works
-           col  (:column cell)
-           x1 (* col size)
-           y1 (* row size)
-           x2 (+ x1 size)
-           y2 (+ y1 size)]
-       {:east [x2 y1 x2 y2]
-        :west [x1 y1 x1 y2]
-        :north [x1 y1 x2 y1]
-        :south [x1 y2 x2 y2]}))
+   (def walls-from #((walls-at grid) % pixels-per-cell))
 
    (defn plot-cell-with-lines [cell]
-     (let [walls (walls-from cell pixels-per-cell)]
+     (let [walls (walls-from cell)]
        (doseq [[orientation neighbor] (neighbors-from cell grid)]
          (when (or (nil? neighbor)
                    (not (linked? cell neighbor)))
@@ -72,7 +76,7 @@
      :setup setup
      :draw do-draw)))
 
-(defn animate! [events cell-size]
+(defn animate! [events cell-size grid]
 
   (defn setup []
       ; draw will be called 60 times per second
@@ -81,10 +85,15 @@
       ; otherwise each invocation of 'draw' would clear sketch completely
     (q/background 255))
 
-  (defn as-wall [from to])
+  (def walls-from #((walls-at grid) % cell-size))
+
+  (defn as-wall [side-a side-b]
+    (let [neighbors (neighbors-from side-a grid)
+          [at-orientation _] (filter (fn [k,id] (= id side-b)) neighbors)])
+    (at-orientation (walls-from side-b)))
 
   (defn do-draw []
-    (doseq [wall (->> events (e/poll! (q/frame-count) :wall-down) (apply map as-wall))]
+    (doseq [wall (->> events (poll! (q/frame-count) :wall-down) (apply map as-wall))]
       (apply q/line wall)))
 
   (q/defsketch sample-maze
