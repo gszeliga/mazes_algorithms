@@ -72,7 +72,7 @@
      :setup setup
      :draw do-draw)))
 
-(defn animate! [walls cell-size]
+(defn animate! [events cell-size]
 
   (defn setup []
       ; draw will be called 60 times per second
@@ -81,8 +81,10 @@
       ; otherwise each invocation of 'draw' would clear sketch completely
     (q/background 255))
 
+  (defn as-wall [from to])
+
   (defn do-draw []
-    (doseq [wall (poll! (q/frame-count) walls)]
+    (doseq [wall (->> events (e/poll! (q/frame-count) :wall-down) (apply map as-wall))]
       (apply q/line wall)))
 
   (q/defsketch sample-maze

@@ -12,19 +12,21 @@
   [q] (.take q))
 
 (defn poll!
-  [n-of-events q & only-types]
+  ([q] (poll! #{} q))
+  ([only-types q] (poll! 1 only-types q))
+  ([n-of-events only-types q]
 
-  (defn do-poll [accepts? collected]
-    (if-not (= n-of-events (count collected))
-      (if-let [{event-type :type :as event} (.poll q)]
-        (recur accepts? (if (accepts? event-type) (conj collected event) collected))
-        collected)
-      collected))
+   (defn do-poll [accepts? collected]
+     (if-not (= n-of-events (count collected))
+       (if-let [{event-type :type :as event} (.poll q)]
+         (recur accepts? (if (accepts? event-type) (conj collected event) collected))
+         collected)
+       collected))
 
-  (defn just [events]
-    (fn [e] (or (empty? events) (contains? events e))))
+   (defn just [events]
+     (fn [e] (or (empty? events) (contains? events e))))
 
-  (do-poll (just (set only-types)) []))
+   (do-poll (just (set (if-not (seq? only-types) [only-types] only-types))) [])))
 
 (defn just-types
   [& only-types]
