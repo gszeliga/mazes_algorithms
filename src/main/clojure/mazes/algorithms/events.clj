@@ -26,6 +26,12 @@
 
   (do-poll (just (set only-types)) []))
 
+(defn just-types
+  [& only-types]
+  (defn keeping [types]
+    (fn [e] (or (empty? types) (contains? types (:type e)))))
+  (filter (keeping (set only-types))))
+
 (defn wall-down-emiter [f]
   (fn [from to]
     (f {:type :wall-down :values #{(to-id from) (to-id to)}})))

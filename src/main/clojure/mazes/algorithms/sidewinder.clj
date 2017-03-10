@@ -7,7 +7,7 @@
   ([grid] (visit grid (fn [_])))
   ([grid f]
 
-   (def wall-is-down
+   (def wall-down
      (wall-down-emiter f))
 
    (def visiting
@@ -34,12 +34,12 @@
                  (let [member (rand-nth visited)]
                    (when-let [northern-member (:north (neighbors-from member grid))]
                      (link member northern-member)
-                     (wall-is-down member northern-member))))
+                     (wall-down member northern-member))))
                (recur [] (rest remaining)))
 
              (do
                (link cell eastern-neighbor)
-               (tear-down-wall cell eastern-neighbor)
+               (wall-down cell eastern-neighbor)
                (recur visited (rest remaining)))))))
 
      (traverse-cells [] row))
