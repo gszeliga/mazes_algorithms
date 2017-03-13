@@ -89,11 +89,11 @@
 
   (defn as-wall [side-a side-b]
     (let [neighbors (neighbors-from side-a grid)
-          [at-orientation _] (filter (fn [k,id] (= id side-b)) neighbors)])
-    (at-orientation (walls-from side-b)))
+          [at-orientation _] (filter (fn [k,id] (= id side-b)) neighbors)]
+      (at-orientation (walls-from side-b))))
 
   (defn do-draw []
-    (doseq [wall (->> events (poll! (q/frame-count) :wall-down) (apply map as-wall))]
+    (doseq [wall (->> events (poll! (q/frame-count) :wall-down) (map #(apply as-wall (:values %))))]
       (apply q/line wall)))
 
   (q/defsketch sample-maze
