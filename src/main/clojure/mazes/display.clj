@@ -37,12 +37,11 @@
           (str "+" (apply str (repeat (n-cols grid) "---+")) \newline)
           (reverse (rows-from grid))))
 
-(defn- walls-at [grid]
-  (fn [cell size]
-    (let [row (- (dec (n-rows grid)) (:row cell)) ;we need to use the opposite row because of how quil works
-          col  (:column cell)
+(defn- walls-at [grid size]
+  (fn [row col]
+    (let [opposite-row (- (dec (n-rows grid)) row) ;we need to use the opposite row because of how quil works
           x1 (* col size)
-          y1 (* row size)
+          y1 (* opposite-row size)
           x2 (+ x1 size)
           y2 (+ y1 size)]
       {:east [x2 y1 x2 y2]
@@ -52,12 +51,12 @@
 
 (defn draw
   ([grid] (draw grid 40))
-  ([grid pixels-per-cell]
+  ([grid cell-size]
 
    (defn setup []
      (q/background 255))
 
-   (def walls-from #((walls-at grid) % pixels-per-cell))
+   (def walls-from #((walls-at grid cell-size) (:row %) (:column %)))
 
    (defn plot-cell-with-lines [cell]
      (let [walls (walls-from cell)]
@@ -71,8 +70,8 @@
        (plot-cell-with-lines cell)))
 
    (q/defsketch sample-maze
-     :size [(* (n-cols grid) pixels-per-cell)
-            (* (n-rows grid) pixels-per-cell)]
+     :size [(* (n-cols grid) cell-size)
+            (* (n-rows grid) cell-size)]
      :setup setup
      :draw do-draw)))
 
@@ -85,12 +84,14 @@
       ; otherwise each invocation of 'draw' would clear sketch completely
     (q/background 255))
 
-  (def walls-from #((walls-at grid) % cell-size))
+  (def walls-from #(apply (walls-at grid cell-size) %))
 
   (defn as-wall [side-a side-b]
-    (let [neighbors (neighbors-from side-a grid)
-          [at-orientation _] (filter (fn [k,id] (= id side-b)) neighbors)]
-      (at-orientation (walls-from side-b))))
+    (let [neighbors (apply #(neighbors-from %1 %2 grid) side-a)
+          [at-orientation _] (first (filter (fn [entry]
+                                              (if-some [cell (val entry)]
+                                                (= (to-id cell) side-b) :false)) neighbors))]
+      (at-orientation (walls-from side-a))))
 
   (defn do-draw []
     (doseq [wall (->> events (poll! (q/frame-count) :wall-down) (map #(apply as-wall (:values %))))]

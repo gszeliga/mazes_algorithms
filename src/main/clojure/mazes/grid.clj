@@ -33,13 +33,14 @@
         col (long (rand (n-cols grid)))]
     (cell-at grid row col)))
 
-(defn neighbors-from [cell grid]
-  (let [row (:row cell)
-        col (:column cell)]
-    (reduce-kv
-     (fn [m k coord] (assoc m k (apply cell-at grid coord)))
-     {}
-     (neighbors-at row col))))
+(defn neighbors-from
+  ([cell grid]
+   (neighbors-from (:row cell) (:column cell) grid))
+  ([row col grid]
+   (reduce-kv
+    (fn [m k coord] (assoc m k (apply cell-at grid coord)))
+    {}
+    (neighbors-at row col))))
 
 (defn rows-from [grid]
   grid)
