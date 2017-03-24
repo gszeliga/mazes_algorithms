@@ -77,52 +77,31 @@
 
 (defn animate! [events cell-size grid]
 
+  (def walls-from #(apply (walls-at grid cell-size) %))
+
   (defn setup []
       ; draw will be called 60 times per second
     (q/frame-rate 10)
       ; set background to white colour only in the setup
       ; otherwise each invocation of 'draw' would clear sketch completely
-    (q/background 255))
+    (q/background 255)
 
-  (def walls-from #(apply (walls-at grid cell-size) %))
+    (doseq [wall  (mapcat identity (->> grid cells-from (map to-id) (map walls-from) (map vals)))]
+      (apply q/line wall)))
 
   (defn as-wall [side-a side-b]
     (let [neighbors (apply #(neighbors-from %1 %2 grid) side-a)
-          [at-orientation _] (first (filter (fn [entry]
-                                              (if-some [cell (val entry)]
-                                                (= (to-id cell) side-b) :false)) neighbors))]
+          [at-orientation] (keys (filter #(when-some [cell (val %)]
+                                            (= (to-id cell) side-b)) neighbors))]
       (at-orientation (walls-from side-a))))
 
   (defn do-draw []
     (doseq [wall (->> events (poll! (q/frame-count) :wall-down) (map #(apply as-wall (:values %))))]
-      (apply q/line wall)))
+      (q/with-stroke [255 255 255]
+        (apply q/line wall))))
 
   (q/defsketch sample-maze
     :size [(* (n-cols grid) cell-size)
            (* (n-rows grid) cell-size)]
-    :setup setup
-    :draw do-draw))
-
-;TODO The idea is to end up using functinal mode: https://github.com/quil/quil/wiki/Functional-mode-%28fun-mode%29
-(defn draw-animated [grid]
-
-  (def pixels-per-cell 40)
-
-  (defn setup []
-      ; draw will be called 60 times per second
-    (q/frame-rate 10)
-      ; set background to white colour only in the setup
-      ; otherwise each invocation of 'draw' would clear sketch completely
-    (q/background 255))
-
-  (defn do-draw []
-    (doseq [cell (take 1 (drop (dec (q/frame-count)) (cells-from grid)))]
-      (q/rect (* pixels-per-cell (:column cell))
-              (* pixels-per-cell (:row cell))
-              pixels-per-cell pixels-per-cell)))
-
-  (q/defsketch sample-maze
-    :size [(* (n-cols grid) pixels-per-cell)
-           (* (n-rows grid) pixels-per-cell)]
     :setup setup
     :draw do-draw))

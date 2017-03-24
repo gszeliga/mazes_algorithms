@@ -36,7 +36,7 @@
 
 (defn wall-down-emiter [f]
   (fn [from to]
-    (f {:type :wall-down :values #{(to-id from) (to-id to)}})))
+    (f {:type :wall-down :values [(to-id from) (to-id to)]})))
 
 (defn visiting-cell-emiter [f]
   (fn [cell]
