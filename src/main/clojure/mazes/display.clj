@@ -37,21 +37,23 @@
           (str "+" (apply str (repeat (n-cols grid) "---+")) \newline)
           (reverse (rows-from grid))))
 
-(defn- walls-at [grid size]
-  (fn [row col]
-    (let [opposite-row (- (dec (n-rows grid)) row) ;we need to use the opposite row because of how quil works
-          x1 (* col size)
-          y1 (* opposite-row size)
-          x2 (+ x1 size)
-          y2 (+ y1 size)]
-      {:east [x2 y1 x2 y2]
-       :west [x1 y1 x1 y2]
-       :north [x1 y1 x2 y1]
-       :south [x1 y2 x2 y2]})))
+(defn- walls-at
+  ([grid size] (walls-at grid size identity identity))
+  ([grid size f g]
+   (fn [row col]
+     (let [opposite-row (- (dec (n-rows grid)) row) ;we need to use the opposite row because of how quil works
+           x1 (* col size)
+           y1 (* opposite-row size)
+           x2 (+ x1 size)
+           y2 (+ y1 size)]
+       {:east [x2 (f y1) x2 (g y2)]
+        :west [x1 (f y1) x1 (g y2)]
+        :north [(f x1) y1 (g x2) y1]
+        :south [(f x1) y2 (g x2) y2]}))))
 
 (defn draw
-  ([grid] (draw grid 40))
-  ([grid cell-size]
+  ([grid] (draw 40 grid))
+  ([cell-size grid]
 
    (defn setup []
      (q/background 255))
@@ -78,6 +80,7 @@
 (defn animate! [events cell-size grid]
 
   (def walls-from #(apply (walls-at grid cell-size) %))
+  (def walls-to-tear-down-from #(apply (walls-at grid cell-size inc dec) %))
 
   (defn setup []
       ; draw will be called 60 times per second
@@ -93,7 +96,7 @@
     (let [neighbors (apply #(neighbors-from %1 %2 grid) side-a)
           [at-orientation] (keys (filter #(when-some [cell (val %)]
                                             (= (to-id cell) side-b)) neighbors))]
-      (at-orientation (walls-from side-a))))
+      (at-orientation (walls-to-tear-down-from side-a))))
 
   (defn do-draw []
     (doseq [wall (->> events (poll! (q/frame-count) :wall-down) (map #(apply as-wall (:values %))))]
@@ -105,3 +108,6 @@
            (* (n-rows grid) cell-size)]
     :setup setup
     :draw do-draw))
+
+;fun mode: https://github.com/quil/quil/wiki/Functional-mode-%28fun-mode%29
+;http://quil.info/sketches/show/example_tree
