@@ -77,37 +77,51 @@
      :setup setup
      :draw do-draw)))
 
-(defn animate! [events cell-size grid]
+(defn animate!
+  ([events cell-size grid]
+   (animate! events cell-size 10 grid))
+  ([events cell-size speed grid]
+   (animate! events cell-size speed 5 grid))
+  ([events cell-size speed stroke grid]
 
-  (def walls-from #(apply (walls-at grid cell-size) %))
-  (def walls-to-tear-down-from #(apply (walls-at grid cell-size inc dec) %))
+   (def adjustment (int (Math/ceil (/ stroke 2))))
+   (def walls-from #(apply (walls-at grid cell-size) %))
+   (def walls-to-tear-down-from #(apply (walls-at grid cell-size (partial + adjustment) (fn [v] (- v adjustment))) %))
 
-  (defn setup []
+   (defn setup []
       ; draw will be called 60 times per second
-    (q/frame-rate 10)
+     (q/frame-rate speed)
       ; set background to white colour only in the setup
       ; otherwise each invocation of 'draw' would clear sketch completely
-    (q/background 255)
+     (q/background 255)
 
-    (doseq [wall  (mapcat identity (->> grid cells-from (map to-id) (map walls-from) (map vals)))]
-      (apply q/line wall)))
+     (doseq [wall  (mapcat identity (->> grid cells-from (map to-id) (map walls-from) (map vals)))]
+       (apply q/line wall)))
 
-  (defn as-wall [side-a side-b]
-    (let [neighbors (apply #(neighbors-from %1 %2 grid) side-a)
-          [at-orientation] (keys (filter #(when-some [cell (val %)]
-                                            (= (to-id cell) side-b)) neighbors))]
-      (at-orientation (walls-to-tear-down-from side-a))))
+   (defn as-wall [side-a side-b]
+     (let [neighbors (apply #(neighbors-from %1 %2 grid) side-a)
+           [at-orientation] (keys (filter #(when-some [cell (val %)]
+                                             (= (to-id cell) side-b)) neighbors))]
+       (at-orientation (walls-to-tear-down-from side-a))))
 
-  (defn do-draw []
-    (doseq [wall (->> events (poll! (q/frame-count) :wall-down) (map #(apply as-wall (:values %))))]
-      (q/with-stroke [255 255 255]
-        (apply q/line wall))))
+   (defn do-draw [previous-wall]
+     (fn []
+       (q/stroke-cap :project)
+       (q/stroke-weight stroke)
 
-  (q/defsketch sample-maze
-    :size [(* (n-cols grid) cell-size)
-           (* (n-rows grid) cell-size)]
-    :setup setup
-    :draw do-draw))
+       (doseq [wall (->> events (poll! :wall-down) (map #(apply as-wall (:values %))))]
+         (dosync
+          (when-let [p-wall (deref previous-wall)]
+            (q/with-stroke [255 255 255]
+              (apply q/line p-wall)))
+          (q/with-stroke [255 0 0]
+            (apply q/line (ref-set previous-wall wall)))))))
+
+   (q/defsketch sample-maze
+     :size [(* (n-cols grid) cell-size)
+            (* (n-rows grid) cell-size)]
+     :setup setup
+     :draw (do-draw (ref nil)))))
 
 ;fun mode: https://github.com/quil/quil/wiki/Functional-mode-%28fun-mode%29
 ;http://quil.info/sketches/show/example_tree
