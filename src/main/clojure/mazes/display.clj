@@ -1,10 +1,6 @@
 (ns mazes.display
-  (use [mazes.grid :only (rows-from
-                          neighbors-from
-                          n-cols
-                          n-rows
-                          cells-from)]
-       [mazes.algorithms.events :only (poll!)])
+  (use [mazes.grid :only (rows-from neighbors-from n-cols n-rows cells-from make-grid)]
+       [mazes.algorithms.events :only (poll! event-stream offer!)])
 
   (require [mazes.cell :refer :all] :reload
            [quil.core :as q :include-macros true])
@@ -38,7 +34,8 @@
           (reverse (rows-from grid))))
 
 (defn- walls-at
-  ([grid size] (walls-at grid size identity identity))
+  ([grid size]
+   (walls-at grid size identity identity))
   ([grid size f g]
    (fn [row col]
      (let [opposite-row (- (dec (n-rows grid)) row) ;we need to use the opposite row because of how quil works
@@ -83,9 +80,9 @@
                        speed 10
                        stroke 5}}]
 
-  (def adjustment (int (Math/ceil (/ stroke 2))))
+  (def point-offset (int (Math/ceil (/ stroke 2))))
   (def walls-from #(apply (walls-at grid cell-size) %))
-  (def walls-to-tear-down-from #(apply (walls-at grid cell-size (partial + adjustment) (fn [v] (- v adjustment))) %))
+  (def walls-to-tear-down-from #(apply (walls-at grid cell-size (partial + point-offset) (fn [v] (- v point-offset))) %))
 
   (defn setup []
     (q/frame-rate speed)
@@ -119,5 +116,18 @@
     :setup setup
     :draw (do-draw (ref nil))))
 
-;fun mode: https://github.com/quil/quil/wiki/Functional-mode-%28fun-mode%29
-;http://quil.info/sketches/show/example_tree
+(defn string-it!
+  [rows cols & {:keys [using]}]
+  (-> (using (make-grid rows cols)) (stringify) (print)))
+
+(defn draw-it!
+  [rows cols & {:keys [using size]
+                :or {size 10}}]
+  (-> (using (make-grid rows cols)) (draw :cell-size size)))
+
+(defn animate-it!
+  [rows cols & {:keys [using size speed]
+                :or {size 10
+                     speed 50}}]
+  (let [events (event-stream)]
+    (-> (using (make-grid rows cols) #(offer! events %)) (animate! events :cell-size size :speed speed))))
