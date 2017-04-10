@@ -49,15 +49,14 @@
         :south [(f x1) y2 (g x2) y2]}))))
 
 (defn draw
-  [grid & {:keys [cell-size]
-           :or {cell-size 10}}]
+  [grid & {:keys [size] :or {size 10}}]
 
   (defn setup []
     (q/background 255))
 
-  (def walls-from #((walls-at grid cell-size) (:row %) (:column %)))
+  (def walls-from #((walls-at grid size) (:row %) (:column %)))
 
-  (defn plot-cell-with-lines [cell]
+  (defn draw-cell [cell]
     (let [walls (walls-from cell)]
       (doseq [[orientation neighbor] (neighbors-from cell grid)]
         (when (or (nil? neighbor)
@@ -66,23 +65,21 @@
 
   (defn do-draw []
     (doseq [cell (cells-from grid)]
-      (plot-cell-with-lines cell)))
+      (draw-cell cell)))
 
   (q/defsketch sample-maze
-    :size [(* (n-cols grid) cell-size)
-           (* (n-rows grid) cell-size)]
+    :size [(* (n-cols grid) size)
+           (* (n-rows grid) size)]
     :setup setup
     :draw do-draw))
 
 (defn animate!
-  [grid events & {:keys [cell-size speed stroke]
-                  :or {cell-size 10
-                       speed 10
-                       stroke 5}}]
+  [grid events & {:keys [size speed stroke]
+                  :or {size 10 speed 10 stroke 5}}]
 
   (def point-offset (int (Math/ceil (/ stroke 2))))
-  (def walls-from #(apply (walls-at grid cell-size) %))
-  (def walls-to-tear-down-from #(apply (walls-at grid cell-size (partial + point-offset) (fn [v] (- v point-offset))) %))
+  (def walls-from #(apply (walls-at grid size) %))
+  (def walls-to-tear-down-from #(apply (walls-at grid size (partial + point-offset) (fn [v] (- v point-offset))) %))
 
   (defn setup []
     (q/frame-rate speed)
@@ -111,23 +108,27 @@
            (apply q/line (ref-set previous-wall wall)))))))
 
   (q/defsketch sample-maze
-    :size [(* (n-cols grid) cell-size)
-           (* (n-rows grid) cell-size)]
+    :size [(* (n-cols grid) size)
+           (* (n-rows grid) size)]
     :setup setup
     :draw (do-draw (ref nil))))
 
-(defn string-it!
-  [rows cols & {:keys [using]}]
-  (-> (using (make-grid rows cols)) (stringify) (print)))
+;Some friendly function
 
-(defn draw-it!
+(defn string-it [grid]
+  (-> grid (stringify) (print)))
+
+(defn string-outcome
+  [rows cols & {:keys [using]}]
+  (-> (using (make-grid rows cols) (string-it))))
+
+(defn draw-outcome
   [rows cols & {:keys [using size]
                 :or {size 10}}]
-  (-> (using (make-grid rows cols)) (draw :cell-size size)))
+  (-> (using (make-grid rows cols)) (draw :size size)))
 
-(defn animate-it!
+(defn animate-outcome
   [rows cols & {:keys [using size speed]
-                :or {size 10
-                     speed 50}}]
+                :or {size 10 speed 50}}]
   (let [events (event-stream)]
-    (-> (using (make-grid rows cols) #(offer! events %)) (animate! events :cell-size size :speed speed))))
+    (-> (using (make-grid rows cols) #(offer! events %)) (animate! events :size size :speed speed))))
