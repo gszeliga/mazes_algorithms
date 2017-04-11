@@ -115,19 +115,19 @@
 
 ;Some friendly function
 
-(defn string-it [grid]
+(defn prn-grid [grid]
   (-> grid (stringify) (print)))
 
-(defn string-outcome
+(defn string-it
   [rows cols & {:keys [using]}]
-  (-> (using (make-grid rows cols) (string-it))))
+  (-> (using (make-grid rows cols)) (prn-grid)))
 
-(defn draw-outcome
+(defn draw-it
   [rows cols & {:keys [using size]
                 :or {size 10}}]
   (-> (using (make-grid rows cols)) (draw :size size)))
 
-(defn animate-outcome
+(defn animate-it
   [rows cols & {:keys [using size speed]
                 :or {size 10 speed 50}}]
   (let [events (event-stream)]
