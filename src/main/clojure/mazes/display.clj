@@ -49,7 +49,6 @@
 (defn stringify
   ([grid]
    (stringify grid with-spaces))
-
   ([grid render-cell]
    (defn cell->str [row-line cell]
      (let [[row-line-top row-line-bottom] row-line

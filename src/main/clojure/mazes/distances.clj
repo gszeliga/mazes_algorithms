@@ -3,10 +3,10 @@
   (use [mazes.grid :only (cell-at)]))
 
 (defn distances-from
-  ([row col grid]
-   (distances-from (cell-at grid row col) grid))
+  ([grid row col]
+   (distances-from grid (cell-at grid row col)))
 
-  ([cell grid]
+  ([grid cell]
    (defn next-pass [frontiers distances step]
      (reduce (fn [state linked]
                (let [[next-cells partial-distances] state]

@@ -1,5 +1,6 @@
 (ns mazes.display-for-humans
   (use [mazes.grid :only (make-grid)]
+       [mazes.distances :only (distances-from)]
        [mazes.algorithms.events :only (poll! event-stream offer!)])
   (require [mazes.display :refer :all]))
 
@@ -8,8 +9,12 @@
   (-> grid (stringify rendered) (print)))
 
 (defn string-it
-  [rows cols & {:keys [using]}]
-  (-> (using (make-grid rows cols)) (prn-grid)))
+  [rows cols & {:keys [using distances-at]}]
+  (let [grid (using (make-grid rows cols))
+        rendered-as (if (some? distances-at)
+                      (with-distances (apply distances-from grid distances-at))
+                      with-spaces)]
+    (prn-grid grid :rendered rendered-as)))
 
 (defn draw-it
   [rows cols & {:keys [using size]
