@@ -6,13 +6,53 @@
            [quil.core :as q :include-macros true])
   (:gen-class))
 
-(defn with-spaces [_] "   ")
+(defn- repeat-str
+  "Create a string that repeats s n times."
+  [s n]
+  (apply str (repeat n s)))
+
+(defn- spaces
+  "Create a string of n spaces."
+  [n]
+  (repeat-str \space n))
+
+(defn- center
+  "Center s in padding to final size len"
+  [s len]
+  (let [slen (count s)
+        lpad (int (/ (- len slen) 2))
+        rpad (- len slen lpad)]
+    (str (spaces lpad) s (spaces rpad))))
+
+(defn- walls-at
+  ([grid size]
+   (walls-at grid size identity identity))
+  ([grid size f g]
+   (fn [row col]
+     (let [opposite-row (- (dec (n-rows grid)) row) ;we need to use the opposite row because of how quil works
+           x1 (* col size)
+           y1 (* opposite-row size)
+           x2 (+ x1 size)
+           y2 (+ y1 size)]
+       {:east [x2 (f y1) x2 (g y2)]
+        :west [x1 (f y1) x1 (g y2)]
+        :north [(f x1) y1 (g x2) y1]
+        :south [(f x1) y2 (g x2) y2]}))))
+
+(defn with-spaces [_]
+  "Renders a cell using plain spaces"
+  (spaces 3))
+
+(defn with-distances
+  "Renders a cell according to its distance from a reference"
+  [distances]
+  #(center (str (get distances %)) 3))
 
 (defn stringify
   ([grid]
    (stringify grid with-spaces))
-  ([grid render-cell]
 
+  ([grid render-cell]
    (defn cell->str [row-line cell]
      (let [[row-line-top row-line-bottom] row-line
            neighbors (neighbors-from cell grid)
@@ -38,21 +78,6 @@
    (reduce row->str
            (str "+" (apply str (repeat (n-cols grid) "---+")) \newline)
            (reverse (rows-from grid)))))
-
-(defn- walls-at
-  ([grid size]
-   (walls-at grid size identity identity))
-  ([grid size f g]
-   (fn [row col]
-     (let [opposite-row (- (dec (n-rows grid)) row) ;we need to use the opposite row because of how quil works
-           x1 (* col size)
-           y1 (* opposite-row size)
-           x2 (+ x1 size)
-           y2 (+ y1 size)]
-       {:east [x2 (f y1) x2 (g y2)]
-        :west [x1 (f y1) x1 (g y2)]
-        :north [(f x1) y1 (g x2) y1]
-        :south [(f x1) y2 (g x2) y2]}))))
 
 (defn draw
   [grid & {:keys [size] :or {size 10}}]
@@ -119,10 +144,12 @@
     :setup setup
     :draw (do-draw (ref nil))))
 
-;Some friendly function
-
-(defn prn-grid [grid]
-  (-> grid (stringify) (print)))
+;Human-ready display functions 
+(defn prn-grid
+  ([grid]
+   (prn-grid grid with-spaces))
+  ([grid rendering-cell]
+   (-> grid (stringify rendering-cell) (print))))
 
 (defn string-it
   [rows cols & {:keys [using]}]
