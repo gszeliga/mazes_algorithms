@@ -1,7 +1,5 @@
 (ns mazes.display
-  (use [mazes.grid :only (rows-from neighbors-from n-cols n-rows cells-from make-grid)]
-       [mazes.algorithms.events :only (poll! event-stream offer!)])
-
+  (use [mazes.grid :only (rows-from neighbors-from n-cols n-rows cells-from)])
   (require [mazes.cell :refer :all] :reload
            [quil.core :as q :include-macros true])
   (:gen-class))
@@ -143,25 +141,3 @@
            (* (n-rows grid) size)]
     :setup setup
     :draw (do-draw (ref nil))))
-
-;Human-ready display functions 
-(defn prn-grid
-  ([grid]
-   (prn-grid grid with-spaces))
-  ([grid rendering-cell]
-   (-> grid (stringify rendering-cell) (print))))
-
-(defn string-it
-  [rows cols & {:keys [using]}]
-  (-> (using (make-grid rows cols)) (prn-grid)))
-
-(defn draw-it
-  [rows cols & {:keys [using size]
-                :or {size 10}}]
-  (-> (using (make-grid rows cols)) (draw :size size)))
-
-(defn animate-it
-  [rows cols & {:keys [using size speed]
-                :or {size 10 speed 50}}]
-  (let [events (event-stream)]
-    (-> (using (make-grid rows cols) #(offer! events %)) (animate! events :size size :speed speed))))
