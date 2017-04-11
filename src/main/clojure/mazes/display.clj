@@ -6,32 +6,38 @@
            [quil.core :as q :include-macros true])
   (:gen-class))
 
-(defn stringify [grid]
+(defn with-spaces [_] "   ")
 
-  (defn display-row-cell [row-line cell]
-    (let [[row-line-top row-line-bottom] row-line
-          neighbors (neighbors-from cell grid)
-          east-cell (:east neighbors)
-          south-cell (:south neighbors)]
+(defn stringify
+  ([grid]
+   (stringify grid with-spaces))
+  ([grid render-cell]
 
-      [(str row-line-top "   " (if (and (some? east-cell)
-                                        (linked? cell east-cell))
-                                 " "
-                                 "|"))
+   (defn cell->str [row-line cell]
+     (let [[row-line-top row-line-bottom] row-line
+           neighbors (neighbors-from cell grid)
+           east-cell (:east neighbors)
+           south-cell (:south neighbors)]
 
-       (str row-line-bottom (if (and (some? south-cell)
-                                     (linked? cell south-cell))
-                              "   "
-                              "---") "+")]))
+       [(str row-line-top (render-cell (to-id cell))
+             (if (and (some? east-cell)
+                      (linked? cell east-cell))
+               " "
+               "|"))
 
-  (defn display-grid-row [grid-as-string row]
-    (str (apply str grid-as-string
-                (interpose \newline (reduce display-row-cell ["|" "+"] row)))
-         \newline))
+        (str row-line-bottom (if (and (some? south-cell)
+                                      (linked? cell south-cell))
+                               "   "
+                               "---") "+")]))
 
-  (reduce display-grid-row
-          (str "+" (apply str (repeat (n-cols grid) "---+")) \newline)
-          (reverse (rows-from grid))))
+   (defn row->str [grid-as-string row]
+     (str (apply str grid-as-string
+                 (interpose \newline (reduce cell->str ["|" "+"] row)))
+          \newline))
+
+   (reduce row->str
+           (str "+" (apply str (repeat (n-cols grid) "---+")) \newline)
+           (reverse (rows-from grid)))))
 
 (defn- walls-at
   ([grid size]
