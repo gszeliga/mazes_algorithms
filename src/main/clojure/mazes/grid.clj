@@ -23,10 +23,13 @@
 (defn n-cols [grid]
   (-> grid meta :columns))
 
-(defn cell-at [grid row col]
-  (when (and (<= 0 row (n-rows grid))
-             (<= 0 col (n-cols grid)))
-    (get-in grid [row col])))
+(defn cell-at
+  ([grid cell]
+   (cell-at grid (:row cell) (:column cell)))
+  ([grid row col]
+   (when (and (<= 0 row (n-rows grid))
+              (<= 0 col (n-cols grid)))
+     (get-in grid [row col]))))
 
 (defn rand-cell-at [grid]
   (let [row (long (rand (n-rows grid)))

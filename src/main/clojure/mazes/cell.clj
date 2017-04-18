@@ -13,9 +13,6 @@
     [self cell bidi])
   (links [self]))
 
-(defprotocol Distances
-  (distances [self]))
-
 (extend-protocol Linkable
   Cell
   (to-id [self]
