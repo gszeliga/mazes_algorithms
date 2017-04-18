@@ -1,5 +1,6 @@
-(ns mazes.display
-  (use [mazes.grid :only (rows-from neighbors-from n-cols n-rows cells-from)])
+(ns mazes.display.core
+  (use [mazes.grid :only (rows-from neighbors-from n-cols n-rows cells-from)]
+       [mazes.algorithms.events :only (poll!)])
   (require [mazes.cell :refer :all] :reload
            [quil.core :as q :include-macros true])
   (:gen-class))
