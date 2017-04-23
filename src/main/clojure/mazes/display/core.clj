@@ -43,9 +43,14 @@
   (spaces 3))
 
 (defn with-distances
-  "Renders a cell according to its distance from a reference"
+  "Renders a cell showing its distance from a specific reference"
   [distances]
   #(center (str (get distances %)) 3))
+
+(defn with-path
+  "Renders a cell only when it's part of the shortest-path"
+  [path]
+  #(center (str (if (some (set [%]) path) "@" " ")) 3))
 
 (defn stringify
   ([grid]
