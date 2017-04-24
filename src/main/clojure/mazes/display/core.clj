@@ -1,27 +1,10 @@
 (ns mazes.display.core
   (use [mazes.grid :only (rows-from neighbors-from n-cols n-rows cells-from)]
+       [mazes.display.core-string :only (with-spaces)]
        [mazes.algorithms.events :only (poll!)])
   (require [mazes.cell :refer :all] :reload
            [quil.core :as q :include-macros true])
   (:gen-class))
-
-(defn- repeat-str
-  "Create a string that repeats s n times."
-  [s n]
-  (apply str (repeat n s)))
-
-(defn- spaces
-  "Create a string of n spaces."
-  [n]
-  (repeat-str \space n))
-
-(defn- center
-  "Center s in padding to final size len"
-  [s len]
-  (let [slen (count s)
-        lpad (int (/ (- len slen) 2))
-        rpad (- len slen lpad)]
-    (str (spaces lpad) s (spaces rpad))))
 
 (defn- walls-at
   ([grid size]
@@ -47,20 +30,6 @@
           center-x (+ x1 (/ size 2))
           center-y (+ y1 (/ size 2))]
       [center-x center-y])))
-
-(defn with-spaces [_]
-  "Renders a cell using plain spaces"
-  (spaces 3))
-
-(defn with-distances
-  "Renders a cell showing its distance from a specific reference"
-  [distances]
-  #(center (str (get distances %)) 3))
-
-(defn with-path
-  "Renders a cell only when it's part of the shortest-path"
-  [path]
-  #(center (str (if (some (set [%]) path) "@" " ")) 3))
 
 (defn stringify
   ([grid]
@@ -122,7 +91,6 @@
 (defn draw-with-path
   [grid path & {:keys [size stroke] :or {size 10 stroke 3}}]
 
-  (def walls-from #((walls-at grid size) %1 %2))
   (def center-of #((cell-center grid size) %1 %2))
 
   (defn setup []

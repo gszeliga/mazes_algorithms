@@ -2,7 +2,8 @@
   (use [mazes.grid :only (make-grid)]
        [mazes.distances :only (distances-from)]
        [mazes.algorithms.events :only (poll! event-stream offer!)])
-  (require [mazes.display.core :refer :all]))
+  (require [mazes.display.core :refer :all]
+           [mazes.display.core-string :refer :all]))
 
 (defn prn-grid
   [grid & {:keys [rendered] :or {rendered with-spaces}}]
