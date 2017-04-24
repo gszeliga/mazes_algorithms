@@ -82,11 +82,8 @@
            (str "+" (apply str (repeat (n-cols grid) "---+")) \newline)
            (reverse (rows-from grid)))))
 
-(defn draw
+(defn- draw-grid
   [grid & {:keys [size] :or {size 10}}]
-
-  (defn setup []
-    (q/background 255))
 
   (def walls-from #((walls-at grid size) (:row %) (:column %)))
 
@@ -97,15 +94,20 @@
                   (not (linked? cell neighbor)))
           (apply q/line (orientation walls))))))
 
-  (defn do-draw []
-    (doseq [cell (cells-from grid)]
-      (draw-cell cell)))
+  (doseq [cell (cells-from grid)]
+    (draw-cell cell)))
+
+(defn draw
+  [grid & {:keys [size] :or {size 10}}]
+
+  (defn setup []
+    (q/background 255))
 
   (q/defsketch sample-maze
     :size [(* (n-cols grid) size)
            (* (n-rows grid) size)]
     :setup setup
-    :draw do-draw))
+    :draw #(draw-grid grid :size size)))
 
 (defn animate!
   [grid events & {:keys [size speed stroke]
