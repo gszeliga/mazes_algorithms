@@ -38,6 +38,16 @@
         :north [(f x1) y1 (g x2) y1]
         :south [(f x1) y2 (g x2) y2]}))))
 
+(defn- cell-center
+  [grid size]
+  (fn [row col]
+    (let [opposite-row (- (dec (n-rows grid)) row) ;we need to use the opposite row because of how quil works
+          x1 (* col size)
+          y1 (* opposite-row size)
+          center-x (+ x1 (/ size 2))
+          center-y (+ y1 (/ size 2))]
+      [center-x center-y])))
+
 (defn with-spaces [_]
   "Renders a cell using plain spaces"
   (spaces 3))
@@ -108,6 +118,28 @@
            (* (n-rows grid) size)]
     :setup setup
     :draw #(draw-grid grid :size size)))
+
+(defn draw-with-path
+  [grid path & {:keys [size stroke] :or {size 10 stroke 3}}]
+
+  (def walls-from #((walls-at grid size) %1 %2))
+  (def center-of #((cell-center grid size) %1 %2))
+
+  (defn setup []
+    (q/background 255)
+    (draw-grid grid :size size))
+
+  (defn draw-path []
+    (q/stroke-weight stroke)
+    (doseq [[from to] (partition 2 1 path)]
+      (q/with-stroke [255 0 0]
+        (apply q/line (concat (apply center-of from) (apply center-of to))))))
+
+  (q/defsketch sample-maze
+    :size [(* (n-cols grid) size)
+           (* (n-rows grid) size)]
+    :setup setup
+    :draw draw-path))
 
 (defn animate!
   [grid events & {:keys [size speed stroke]
