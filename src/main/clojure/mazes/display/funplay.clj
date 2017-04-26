@@ -1,5 +1,6 @@
 (ns mazes.display.funplay
   (use [mazes.grid :only (make-grid)]
+       [mazes.path :only (path-to)]
        [mazes.distances :only (distances-from)]
        [mazes.algorithms.events :only (poll! event-stream offer!)])
   (require [mazes.display.core :refer :all]
@@ -18,9 +19,11 @@
     (prn-grid grid :rendered rendered-with)))
 
 (defn draw-it
-  [rows cols & {:keys [using size]
+  [rows cols & {:keys [using size with-path]
                 :or {size 10}}]
-  (-> (using (make-grid rows cols)) (draw :size size)))
+  (let [grid (using (make-grid rows cols))
+        path (when-not (nil? with-path) (apply path-to grid with-path))]
+    (-> grid (draw :size size :with-path path))))
 
 (defn animate-it
   [rows cols & {:keys [using size speed]

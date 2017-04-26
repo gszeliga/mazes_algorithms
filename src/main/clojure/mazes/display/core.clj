@@ -77,19 +77,8 @@
     (draw-cell cell)))
 
 (defn draw
-  [grid & {:keys [size] :or {size 10}}]
-
-  (defn setup []
-    (q/background 255))
-
-  (q/defsketch sample-maze
-    :size [(* (n-cols grid) size)
-           (* (n-rows grid) size)]
-    :setup setup
-    :draw #(draw-grid grid :size size)))
-
-(defn draw-with-path
-  [grid path & {:keys [size stroke] :or {size 10 stroke 3}}]
+  [grid & {:keys [size stroke with-path]
+           :or {size 10 stroke 3 with-path nil}}]
 
   (def center-of #((cell-center grid size) %1 %2))
 
@@ -98,10 +87,11 @@
     (draw-grid grid :size size))
 
   (defn draw-path []
-    (q/stroke-weight stroke)
-    (doseq [[from to] (partition 2 1 path)]
-      (q/with-stroke [255 0 0]
-        (apply q/line (concat (apply center-of from) (apply center-of to))))))
+    (when-not (nil? with-path)
+      (q/stroke-weight stroke)
+      (doseq [[from to] (partition 2 1 with-path)]
+        (q/with-stroke [255 0 0]
+          (apply q/line (concat (apply center-of from) (apply center-of to)))))))
 
   (q/defsketch sample-maze
     :size [(* (n-cols grid) size)
