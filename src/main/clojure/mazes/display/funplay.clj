@@ -11,19 +11,23 @@
   (-> grid (stringify rendered) (print)))
 
 (defn string-it
-  [rows cols & {:keys [using distance-at]}]
+  [rows cols & {:keys [using distance-at showing-path]
+                :or [distances-at nil showing-path nil]}]
   (let [grid (using (make-grid rows cols))
-        rendered-with (if (some? distance-at)
+        rendered-with (cond
+                        (some? distance-at)
                         (with-distances (apply distances-from grid distance-at))
-                        with-spaces)]
+                        (some? showing-path)
+                        (with-path (apply path-to grid showing-path))
+                        :else with-spaces)]
     (prn-grid grid :rendered rendered-with)))
 
 (defn draw-it
-  [rows cols & {:keys [using size with-path]
+  [rows cols & {:keys [using size showing-path]
                 :or {size 10}}]
   (let [grid (using (make-grid rows cols))
-        path (when-not (nil? with-path) (apply path-to grid with-path))]
-    (-> grid (draw :size size :with-path path))))
+        path (when-not (nil? showing-path) (apply path-to grid showing-path))]
+    (draw grid :size size :with-path path)))
 
 (defn animate-it
   [rows cols & {:keys [using size speed]
