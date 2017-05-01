@@ -1,7 +1,7 @@
 (ns mazes.display.funplay
   (use [mazes.grid :only (make-grid)]
-       [mazes.path :only (path-to)]
-       [mazes.distances :only (distances-from)]
+       [mazes.dijkstra.path :only (path-to)]
+       [mazes.dijkstra.distances :only (distances-from)]
        [mazes.algorithms.events :only (poll! event-stream offer!)])
   (require [mazes.display.core :refer :all]
            [mazes.display.core-string :refer :all]))

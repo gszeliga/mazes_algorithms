@@ -1,4 +1,4 @@
-(ns mazes.distances
+(ns mazes.dijkstra.distances
   (require [mazes.cell :refer :all])
   (use [mazes.grid :only (cell-at)]))
 

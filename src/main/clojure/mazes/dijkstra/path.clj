@@ -1,6 +1,6 @@
-(ns mazes.path
+(ns mazes.dijkstra.path
   (require [mazes.cell :refer :all])
-  (use [mazes.distances]
+  (use [mazes.dijkstra.distances]
        [mazes.grid :only (cell-at)]))
 
 (defn path-to
