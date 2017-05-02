@@ -2,13 +2,13 @@
   (use [mazes.dijkstra.distances]
        [mazes.dijkstra.path]))
 
-(defn- greatest-distance [distances]
+(defn- greatest-distance-in [distances]
   (apply max-key second (seq distances)))
 
-(defn longest-path [grid]
+(defn longest-path-in [grid]
 
-  (let [[most-distant-cell, distance] (greatest-distance (distances-from grid 0 0))
-        distances (distances-from grid most-distant-cell)
-        [goal, distance] (greatest-distance distances)]
+  (let [[most-distant-cell, _] (greatest-distance-in (distances-from grid 0 0))
+        distances (apply distances-from grid most-distant-cell)
+        [goal, _] (greatest-distance-in distances)]
 
     (path-to grid most-distant-cell goal)))
