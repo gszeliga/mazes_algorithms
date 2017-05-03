@@ -23,6 +23,9 @@
 (defn n-cols [grid]
   (-> grid meta :columns))
 
+(defn n-cells [grid]
+  (* (n-cols grid) (n-rows grid)))
+
 (defn cell-at
   ([grid cell]
    (cell-at grid (:row cell) (:column cell)))
