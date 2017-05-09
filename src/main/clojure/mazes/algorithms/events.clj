@@ -38,6 +38,10 @@
   (fn [from to]
     (f {:type :wall-down :values [(to-id from) (to-id to)]})))
 
+(defn visiting-cell-id-emiter [f]
+  (fn [cell-id]
+    (f {:type :visiting :values cell-id})))
+
 (defn visiting-cell-emiter [f]
   (fn [cell]
     (f {:type :visiting :values (to-id cell)})))
