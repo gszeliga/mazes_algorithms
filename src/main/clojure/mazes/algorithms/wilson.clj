@@ -14,14 +14,11 @@
    (def visiting
      (visiting-cell-id-emiter f))
 
-   ;Creo que deberia pasar el random-cell junto con el unvisited actualizado para evitar el infinite loop
    (defn loop-erased [unvisited]
 
      (defn build-path [current-cell path]
 
        (visiting current-cell)
-
-       (prn (str "path=" path))
 
        (if-not (contains? unvisited current-cell)
          path
@@ -46,4 +43,6 @@
          (carve-passages grid path)
          (recur grid (set (remove (set path) unvisited))))))
 
-   (do-visit grid (set (map to-id (cells-from grid))))))
+   (let [unvisited (set (map to-id (cells-from grid)))
+         rand-cell (rand-nth (vec unvisited))]
+     (do-visit grid (disj unvisited rand-cell)))))
