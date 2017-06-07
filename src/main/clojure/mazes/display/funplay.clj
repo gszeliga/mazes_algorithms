@@ -2,6 +2,7 @@
   (use [mazes.grid :only (make-grid)]
        [mazes.dijkstra.path :only (path-to)]
        [mazes.dijkstra.distances :only (distances-from)]
+       [mazes.dijkstra.longest-path :only (longest-path-in)]
        [mazes.algorithms.events :only (poll! event-stream offer!)])
   (require [mazes.display.core :refer :all]
            [mazes.display.core-string :refer :all]))
@@ -11,7 +12,7 @@
   (-> grid (stringify rendered) (print)))
 
 (defn string-it
-  [rows cols & {:keys [using distance-at showing-path]
+  [rows cols & {:keys [using distance-at showing-path with-longest-path]
                 :or [distances-at nil showing-path nil]}]
   (let [grid (using (make-grid rows cols))
         rendered-with (cond
@@ -19,14 +20,21 @@
                         (with-distances (apply distances-from grid distance-at))
                         (some? showing-path)
                         (with-path (apply path-to grid showing-path))
+                        (some? with-longest-path)
+                        (with-path (longest-path-in grid))
                         :else with-spaces)]
     (prn-grid grid :rendered rendered-with)))
 
 (defn draw-it
-  [rows cols & {:keys [using size showing-path]
+  [rows cols & {:keys [using size with-path with-longest-path]
                 :or {size 10}}]
   (let [grid (using (make-grid rows cols))
-        path (when-not (nil? showing-path) (apply path-to grid showing-path))]
+        path (cond
+               (some? with-path)
+               (apply path-to grid with-path)
+               (some? with-longest-path)
+               (longest-path-in grid)
+               :else nil)]
     (draw grid :size size :with-path path)))
 
 (defn animate-it

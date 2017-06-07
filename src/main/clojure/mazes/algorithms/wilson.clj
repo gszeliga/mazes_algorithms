@@ -16,20 +16,24 @@
 
    (defn loop-erased [unvisited]
 
-     (defn build-path [current-cell path]
+     (defn build-path [current-cell-id path]
 
-       (visiting current-cell)
+       (visiting current-cell-id)
 
-       (if-not (contains? unvisited current-cell)
+       (if-not (contains? unvisited current-cell-id)
          path
-         (let [rand-neighbor (->> (neighbors-from (first current-cell) (second current-cell) grid) vals (filter some?) rand-nth to-id)
+         (let [rand-neighbor (->> (neighbors-from (first current-cell-id) (second current-cell-id) grid) vals (filter some?) rand-nth to-id)
                rand-neighbor-pos (.indexOf path rand-neighbor)]
+
+           ;Is it a loop?
            (if-not (= -1 rand-neighbor-pos)
-             (recur rand-neighbor (seq (take (inc rand-neighbor-pos) path)))
+
+             ; Why (apply vector...)? Because we need to preserve the collection type, and therefore, (conj) behaviour
+             (recur rand-neighbor (apply vector (take (inc rand-neighbor-pos) path)))
              (recur rand-neighbor (conj path rand-neighbor))))))
 
      (let [rand-cell (rand-nth (vec unvisited))]
-       (build-path rand-cell (list rand-cell))))
+       (build-path rand-cell [rand-cell])))
 
    (defn carve-passages [grid path]
      (doseq [[from to] (map (fn [[f t]] [(apply cell-at grid f) (apply cell-at grid t)]) (partition 2 1 path))]
