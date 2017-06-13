@@ -19,11 +19,10 @@
      (defn do-hunt [grid non-visited-cells]
 
        (when-let [cell (first non-visited-cells)]
-         (if-let [visited-neighbor (rand-nth (filter #(not-empty (links %)) (->> (neighbors-from cell grid) vals (filter some?))))]
-           (do
-             (link cell visited-neighbor)
-             (wall-down cell visited-neighbor)
-             cell)
+         (if-let [visited-neighbor  (rand-nth (not-empty (filter #(not-empty (links %)) (->> (neighbors-from cell grid) vals (filter some?)))))]
+           (do (link cell visited-neighbor)
+               (wall-down cell visited-neighbor)
+               cell)
            (recur grid (rest non-visited-cells)))))
 
      (do-hunt grid (filter #(empty? (links %)) (cells-from grid))))
@@ -33,7 +32,7 @@
        (let [_ (visiting current-cell)
              neighbors (->> (neighbors-from current-cell grid) vals (filter some?))
              unvisited-neighbors (filter #(empty? (links %)) neighbors)]
-         (if-let [unvisited (rand-nth unvisited-neighbors)]
+         (if-let [unvisited (rand-nth (not-empty unvisited-neighbors))]
            (do (link current-cell unvisited)
                (wall-down current-cell unvisited)
                (recur grid  unvisited))
