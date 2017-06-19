@@ -1,5 +1,5 @@
 (ns mazes.grid
-  (require [mazes.cell :as cell :refer :all])
+  (require [mazes.cell :refer :all])
   (import [mazes.cell.Cell]))
 
 (defn- neighbors-at [row column]
@@ -11,9 +11,9 @@
 (defn make-grid [rows columns]
   (with-meta (into [] (map
                        (fn [r]
-                         (into [] (map
-                                   (fn [c] (cell/make-cell :row r :column c))
-                                   (range columns))))
+                         (into []
+                               (map (fn [c] (make-cell :row r :column c))
+                                    (range columns))))
                        (range rows)))
     {:rows rows :columns columns}))
 
@@ -44,7 +44,8 @@
    (neighbors-from (:row cell) (:column cell) grid))
   ([row col grid]
    (reduce-kv
-    (fn [m k coord] (assoc m k (apply cell-at grid coord)))
+    (fn [m k coord]
+      (assoc m k (apply cell-at grid coord)))
     {}
     (neighbors-at row col))))
 
@@ -59,6 +60,12 @@
    (neighbors-not-linked (:row cell) (:column cell) grid))
   ([row col grid]
    (->> (neighbors-available row col grid) (filter #(empty? (links %))))))
+
+(defn neighbors-linked
+  ([cell grid]
+   (neighbors-linked (:row cell) (:column cell) grid))
+  ([row col grid]
+   (->> (neighbors-available row col grid) (filter #(not-empty (links %))))))
 
 (defn rows-from [grid]
   grid)

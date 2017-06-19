@@ -1,6 +1,6 @@
 (ns mazes.algorithms.hunt-and-kill
   (require [mazes.cell :refer :all])
-  (use [mazes.grid :only (cells-from neighbors-available neighbors-not-linked cell-at rand-cell-at)])
+  (use [mazes.grid :only (cells-from neighbors-not-linked neighbors-linked cell-at rand-cell-at)])
   (use [mazes.algorithms.events :only (wall-down-emiter visiting-cell-emiter)]))
 
 (defn visit
@@ -19,7 +19,7 @@
      (defn do-hunt [grid non-visited-cells]
 
        (when-let [cell (first non-visited-cells)]
-         (if-let [visited-neighbor  (rand-nth (not-empty (filter #(not-empty (links %)) (neighbors-available cell grid))))]
+         (if-let [visited-neighbor  (rand-nth (not-empty (neighbors-linked cell grid)))]
            (do (link cell visited-neighbor)
                (wall-down cell visited-neighbor)
                cell)

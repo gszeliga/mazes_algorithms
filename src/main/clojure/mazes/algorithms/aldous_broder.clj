@@ -1,5 +1,5 @@
 (ns mazes.algorithms.aldous-broder
-  (use [mazes.grid :only (cells-from neighbors-from rand-cell-at n-cells)])
+  (use [mazes.grid :only (cells-from neighbors-available rand-cell-at n-cells)])
   (use [mazes.algorithms.events :only (wall-down-emiter visiting-cell-emiter)])
   (require [mazes.cell :refer :all]))
 
@@ -20,7 +20,7 @@
 
      (if (zero? remaining)
        grid
-       (let [neighbor (->> (neighbors-from current-cell grid) vals (filter some?) rand-nth)]
+       (let [neighbor (->> (neighbors-available current-cell grid) rand-nth)]
 
          (if (empty? (links neighbor))
            (do
