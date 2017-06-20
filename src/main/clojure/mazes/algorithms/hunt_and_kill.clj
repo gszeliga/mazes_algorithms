@@ -15,9 +15,7 @@
      (visiting-cell-emiter f))
 
    (defn hunt-unvisited [grid]
-
      (defn do-hunt [grid non-visited-cells]
-
        (when-let [cell (first non-visited-cells)]
          (if-let [visited-neighbor  (rand-nth (not-empty (neighbors cell grid :linked)))]
            (do (link cell visited-neighbor)
