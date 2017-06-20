@@ -49,23 +49,19 @@
     {}
     (neighbors-at row col))))
 
-(defn neighbors-available
-  ([cell grid]
-   (neighbors-available (:row cell) (:column cell) grid))
-  ([row col grid]
-   (->> (neighbors-from row col grid) vals (filter some?))))
+(def ^:private cell-xforms
+  {:present (filter some?)
+   :linked (comp (filter some?) (map (fn [v] [v (->> v links not-empty)])) (filter second) (map first))
+   :not-linked (comp (filter some?) (map (fn [v] [v (->> v links empty?)])) (filter second) (map first))
+   :all (map identity)})
 
-(defn neighbors-not-linked
+(defn neighbors
   ([cell grid]
-   (neighbors-not-linked (:row cell) (:column cell) grid))
-  ([row col grid]
-   (->> (neighbors-available row col grid) (filter #(empty? (links %))))))
-
-(defn neighbors-linked
-  ([cell grid]
-   (neighbors-linked (:row cell) (:column cell) grid))
-  ([row col grid]
-   (->> (neighbors-available row col grid) (filter #(not-empty (links %))))))
+   (neighbors (:row cell) (:column cell) grid :all))
+  ([cell grid state]
+   (neighbors (:row cell) (:column cell) grid state))
+  ([row col grid state]
+   (sequence (state cell-xforms) (vals (neighbors-from row col grid)))))
 
 (defn rows-from [grid]
   grid)
@@ -73,13 +69,8 @@
 (defn cols-from [grid]
   (apply map vector grid))
 
-(defn cells-from [grid]
-  ;We could use just:
-  ; (flatten grid)
-  ;or 
-  ; (into (empty grid) (mapcat identity grid)))
-
-  (reduce #(if (seq? %2)
-             (concat %1 (cells-from %2))
-             (concat %1 (seq %2)))
-          (empty grid) grid))
+(defn cells-from
+  ([grid]
+   (cells-from grid :all))
+  ([grid state]
+   (sequence (state cell-xforms) (mapcat identity grid))))

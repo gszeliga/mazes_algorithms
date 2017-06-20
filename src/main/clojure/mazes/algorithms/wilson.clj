@@ -1,6 +1,6 @@
 (ns mazes.algorithms.wilson
   (require [mazes.cell :refer :all])
-  (use [mazes.grid :only (cells-from neighbors-available cell-at)])
+  (use [mazes.grid :only (cells-from neighbors cell-at)])
   (use [mazes.algorithms.events :only (wall-down-emiter visiting-cell-id-emiter)]))
 
 (defn visit
@@ -22,7 +22,7 @@
 
        (if-not (contains? unvisited current-cell-id)
          path
-         (let [rand-neighbor (->> (neighbors-available (first current-cell-id) (second current-cell-id) grid) rand-nth to-id)
+         (let [rand-neighbor (->> (neighbors (first current-cell-id) (second current-cell-id) grid :present) rand-nth to-id)
                rand-neighbor-pos (.indexOf path rand-neighbor)]
 
            ;Is it a loop?
