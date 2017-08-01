@@ -2,7 +2,7 @@
   (require [mazes.cell :refer :all])
   (import [mazes.cell.Cell]))
 
-(defn- neighbors-at [row column]
+(defn ^:private neighbors-at [row column]
   {:north [(inc row) column]
    :south [(dec row) column]
    :west  [row (dec column)]
