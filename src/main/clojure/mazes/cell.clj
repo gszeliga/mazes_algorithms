@@ -1,10 +1,11 @@
 (ns mazes.cell)
 
-(defrecord Cell [row column links])
+(defrecord Cell [row column links dead])
 
 (defprotocol Linkable
   (to-id [self])
   (linked? [self cell])
+  (dead? [self])
   (link
     [self cell]
     [self cell bidi])
@@ -17,6 +18,9 @@
   Cell
   (to-id [self]
     [(:row self) (:column self)])
+
+  (dead? [self]
+    (:dead self))
 
   (linked? [self cell]
     (contains? (-> self :links deref) (to-id cell)))
@@ -38,8 +42,8 @@
   (links [self] (keys (-> self :links deref))))
 
 (defn make-cell
-  [& {:keys [row column links] :or {links {}}}]
-  (Cell. row column (ref links)))
+  [& {:keys [row column links dead] :or {dead false links {}}}]
+  (Cell. row column (ref links) dead))
 
 ; (defn make-cell
 ;    ([row column] (make-cell row column {}))

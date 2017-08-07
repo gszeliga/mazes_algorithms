@@ -1,5 +1,6 @@
 (ns mazes.grid
   (require [mazes.cell :refer :all])
+  (require [mazes.mask :refer :all])
   (import [mazes.cell.Cell]))
 
 (defn ^:private neighbors-at [row column]
@@ -8,14 +9,17 @@
    :west  [row (dec column)]
    :east  [row (inc column)]})
 
-(defn make-grid [rows columns]
-  (with-meta (into [] (map
-                       (fn [r]
-                         (into []
-                               (map (fn [c] (make-cell :row r :column c))
-                                    (range columns))))
-                       (range rows)))
-    {:rows rows :columns columns}))
+(defn make-grid
+  ([rows columns]
+   (make-grid rows columns (make-mask rows columns)))
+  ([rows columns mask]
+   (with-meta (into [] (map
+                        (fn [r]
+                          (into []
+                                (map #(make-cell :row r :column % :dead (off? mask r %)))
+                                (range columns)))
+                        (range rows)))
+     {:rows rows :columns columns :mask mask})))
 
 (defn n-rows [grid]
   (-> grid meta :rows))
@@ -45,7 +49,9 @@
   ([row col grid]
    (reduce-kv
     (fn [m k coord]
-      (assoc m k (apply cell-at grid coord)))
+      (let [cell (apply cell-at grid coord)
+            is-dead (if (some? cell) (dead? cell) true)]
+        (assoc m k (when-not is-dead cell))))
     {}
     (neighbors-at row col))))
 
