@@ -6,7 +6,7 @@
            [quil.core :as q :include-macros true])
   (:gen-class))
 
-(defn- walls-at
+(defn ^:private walls-at
   ([grid size]
    (walls-at grid size identity identity))
   ([grid size f g]
@@ -21,7 +21,7 @@
         :north [(f x1) y1 (g x2) y1]
         :south [(f x1) y2 (g x2) y2]}))))
 
-(defn- cell-center
+(defn ^:private cell-center
   [grid size]
   (fn [row col]
     (let [opposite-row (- (dec (n-rows grid)) row) ;we need to use the opposite row because of how quil works
@@ -61,7 +61,7 @@
            (str "+" (apply str (repeat (n-cols grid) "---+")) \newline)
            (reverse (rows-from grid)))))
 
-(defn- draw-grid
+(defn ^:private draw-grid
   [grid & {:keys [size] :or {size 10}}]
 
   (def walls-from #((walls-at grid size) (:row %) (:column %)))

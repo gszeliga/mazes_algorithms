@@ -1,4 +1,5 @@
-(ns mazes.mask)
+(ns mazes.mask
+  (require [clojure.java.io :as io]))
 
 (defprotocol GridMask
   (on? [self row col])
@@ -22,3 +23,10 @@
         bits (java.util.BitSet. size)
         _ (.flip bits 0 size)]
     (->Mask rows columns bits)))
+
+(defn from-txt [file]
+  (with-open [rdr (io/reader file)]
+    (doseq [line (->> (reverse (line-seq rdr))
+                      (map-indexed (fn [row-idx lchars]
+                                     (map-indexed #(vector [row-idx %1] %2) lchars))))]
+      (print line))))

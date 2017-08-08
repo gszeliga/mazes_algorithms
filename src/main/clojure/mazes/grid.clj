@@ -67,7 +67,7 @@
   ([cell grid state]
    (neighbors (:row cell) (:column cell) grid state))
   ([row col grid state]
-   (sequence (state cell-xforms) (vals (neighbors-from row col grid)))))
+   (sequence (comp (remove :dead) (state cell-xforms)) (vals (neighbors-from row col grid)))))
 
 (defn rows-from [grid]
   grid)
@@ -79,4 +79,4 @@
   ([grid]
    (cells-from grid :all))
   ([grid state]
-   (sequence (state cell-xforms) (mapcat identity grid))))
+   (sequence (comp (remove :dead) (state cell-xforms))  (mapcat identity grid))))
