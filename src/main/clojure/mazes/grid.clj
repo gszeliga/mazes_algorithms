@@ -9,17 +9,42 @@
    :west  [row (dec column)]
    :east  [row (inc column)]})
 
-(defn make-grid
-  ([rows columns]
-   (make-grid rows columns (make-mask rows columns)))
-  ([rows columns mask]
+(defmulti make-grid (fn [t & args] t))
+
+(defmethod make-grid :polar [t rows columns]
+
+  (let [row-height (/ 1.0 rows)]
+
+    (with-meta (reduce (fn [partial-grid row]
+                         (let [radius (/ (float row) rows)
+                               circumference (* 2 (Math/PI) radius)
+                               previous-count (count (get partial-grid (dec row)))
+                               estimated-cell-width (/ circumference previous-count)
+                               ratio (Math/round (/ estimated-cell-width row-height))
+                               n-cells (* previous-count ratio)]
+
+                           (conj partial-grid (into [] (map #(make-cell :row row :column % :dead false) (range n-cells))))))
+
+                       [[(make-cell :row 0 :column 0 :dead false)]]
+                       (range 1 rows))
+      {:rows rows :columns columns :type t})))
+
+(defmethod make-grid :standard
+  ([t rows columns]
+   (make-grid t rows columns (make-mask rows columns)))
+
+  ([t rows columns mask]
    (with-meta (into [] (map
                         (fn [r]
                           (into []
                                 (map #(make-cell :row r :column % :dead (off? mask r %)))
                                 (range columns)))
                         (range rows)))
-     {:rows rows :columns columns :mask mask})))
+     {:rows rows :columns columns :mask mask :type t})))
+
+(defmethod make-grid :default
+  ([rows columns] (make-grid :standard rows columns))
+  ([rows columns mask] (make-grid :standard rows columns mask)))
 
 (defn n-rows [grid]
   (-> grid meta :rows))
