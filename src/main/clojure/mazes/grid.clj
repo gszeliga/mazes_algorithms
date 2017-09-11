@@ -23,7 +23,8 @@
                                ratio (Math/round (/ estimated-cell-width row-height))
                                n-cells (* previous-count ratio)]
 
-                           (conj partial-grid (into [] (map #(make-cell :row row :column % :dead false) (range n-cells))))))
+                           (conj partial-grid (into [] (map #(make-cell :row row :column % :dead false)
+                                                            (range n-cells))))))
 
                        [[(make-cell :row 0 :column 0 :dead false)]]
                        (range 1 rows))
@@ -82,9 +83,13 @@
 
 (def ^:private cell-xforms
   {:present (filter some?)
-   :linked (comp (filter some?) (map (fn [v] [v (->> v links not-empty)])) (filter second) (map first))
-   :not-linked (comp (filter some?) (map (fn [v] [v (->> v links empty?)])) (filter second) (map first))
+   :linked (comp (filter some?) (filter #(->> % links empty? not)))
+   :not-linked (comp (filter some?) (filter #(->> % links empty?)))
    :all (map identity)})
+
+;TODO necesito version de neighbors que me den key/values
+;TODO hacer neighbors-from privado
+;TODO hacer neighbors multimethod
 
 (defn neighbors
   ([cell grid]
