@@ -1,5 +1,5 @@
 (ns mazes.algorithms.binary-tree
-  (use [mazes.grid :only (cells-from neighbors-from)])
+  (use [mazes.grid :only (cells-from neighbors)])
   (use [mazes.algorithms.events :only (wall-down-emiter visiting-cell-emiter)])
   (require [mazes.cell :refer :all]))
 
@@ -17,7 +17,7 @@
 
      (visiting cell)
 
-     (let [neighbors (neighbors-from cell grid)
+     (let [neighbors (neighbors cell grid)
            candidates (filter some? [(:north neighbors)
                                      (:east neighbors)])]
        (when-not (empty? candidates)

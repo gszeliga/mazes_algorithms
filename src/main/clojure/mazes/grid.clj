@@ -3,18 +3,10 @@
   (require [mazes.mask :refer :all])
   (import [mazes.cell.Cell]))
 
-(defn ^:private neighbors-at [row column]
-  {:north [(inc row) column]
-   :south [(dec row) column]
-   :west  [row (dec column)]
-   :east  [row (inc column)]})
-
 (defmulti make-grid (fn [t & args] t))
 
 (defmethod make-grid :polar [t rows columns]
-
   (let [row-height (/ 1.0 rows)]
-
     (with-meta (reduce (fn [partial-grid row]
                          (let [radius (/ (float row) rows)
                                circumference (* 2 (Math/PI) radius)
@@ -69,27 +61,38 @@
         col (long (rand (n-cols grid)))]
     (cell-at grid row col)))
 
-(defn neighbors-from
+(def ^:private cell-xforms
+  (letfn [(cell-in [v]
+            (if (vector? v) (second v) v))]
+
+    {:present (filter (comp some? cell-in))
+
+     :linked (comp
+              (filter (comp some? cell-in))
+              (filter #(->> % cell-in links empty? not)))
+
+     :not-linked (comp
+                  (filter (comp some? cell-in))
+                  (filter #(->> % cell-in links empty?)))
+
+     :all (map identity)}))
+
+(defn ^:private neighbors-from
   ([cell grid]
    (neighbors-from (:row cell) (:column cell) grid))
   ([row col grid]
-   (reduce-kv
-    (fn [m k coord]
-      (let [cell (apply cell-at grid coord)
-            is-dead (if (some? cell) (dead? cell) true)]
-        (assoc m k (when-not is-dead cell))))
-    {}
-    (neighbors-at row col))))
-
-(def ^:private cell-xforms
-  {:present (filter some?)
-   :linked (comp (filter some?) (filter #(->> % links empty? not)))
-   :not-linked (comp (filter some?) (filter #(->> % links empty?)))
-   :all (map identity)})
-
-;TODO necesito version de neighbors que me den key/values
-;TODO hacer neighbors-from privado
-;TODO hacer neighbors multimethod
+   (letfn [(neighbors-at [row column]
+             {:north [(inc row) column]
+              :south [(dec row) column]
+              :west  [row (dec column)]
+              :east  [row (inc column)]})]
+     (reduce-kv
+      (fn [m k coord]
+        (let [cell (apply cell-at grid coord)
+              is-dead (if (some? cell) (dead? cell) true)]
+          (assoc m k (when-not is-dead cell))))
+      {}
+      (neighbors-at row col)))))
 
 (defn neighbors
   ([cell grid]
@@ -97,7 +100,8 @@
   ([cell grid state]
    (neighbors (:row cell) (:column cell) grid state))
   ([row col grid state]
-   (sequence (comp (remove :dead) (state cell-xforms)) (vals (neighbors-from row col grid)))))
+   (into {} (comp (remove :dead)
+                  (state cell-xforms)) (neighbors-from row col grid))))
 
 (defn rows-from [grid]
   grid)

@@ -1,5 +1,5 @@
 (ns mazes.display.core
-  (use [mazes.grid :only (rows-from neighbors-from n-cols n-rows cells-from)]
+  (use [mazes.grid :only (rows-from neighbors n-cols n-rows cells-from)]
        [mazes.display.core-string :only (with-spaces)]
        [mazes.algorithms.events :only (poll!)])
   (require [mazes.cell :refer :all] :reload
@@ -37,7 +37,7 @@
   ([grid render-cell]
    (defn cell->str [row-line cell]
      (let [[row-line-top row-line-bottom] row-line
-           neighbors (neighbors-from cell grid)
+           neighbors (neighbors cell grid)
            east-cell (:east neighbors)
            south-cell (:south neighbors)]
 
@@ -68,7 +68,7 @@
 
   (defn draw-cell [cell]
     (let [walls (walls-from cell)]
-      (doseq [[orientation neighbor] (neighbors-from cell grid)]
+      (doseq [[orientation neighbor] (neighbors cell grid)]
         (when (or (nil? neighbor)
                   (not (linked? cell neighbor)))
           (apply q/line (orientation walls))))))
@@ -115,9 +115,9 @@
       (apply q/line wall)))
 
   (defn as-wall [side-a side-b]
-    (let [neighbors (apply #(neighbors-from %1 %2 grid) side-a)
+    (let [neighbors-a (apply #(neighbors %1 %2 grid :all) side-a)
           [at-orientation] (keys (filter #(when-some [cell (val %)]
-                                            (= (to-id cell) side-b)) neighbors))]
+                                            (= (to-id cell) side-b)) neighbors-a))]
       (at-orientation (walls-to-tear-down-from side-a))))
 
   (defn do-draw [previous-wall]

@@ -19,7 +19,7 @@
        grid
        (let [current-cell (first visited)
              _ (visiting current-cell)]
-         (if-let [neighbor (rand-nth (not-empty (neighbors current-cell grid :not-linked)))]
+         (if-let [neighbor (->> (neighbors current-cell grid :not-linked) vals not-empty rand-nth)]
            (do
              (wall-down current-cell neighbor)
              (link current-cell neighbor)

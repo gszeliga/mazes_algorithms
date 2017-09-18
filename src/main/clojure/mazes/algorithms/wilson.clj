@@ -22,7 +22,8 @@
 
        (if-not (contains? unvisited current-cell-id)
          path
-         (let [rand-neighbor (->> (neighbors (first current-cell-id) (second current-cell-id) grid :present) rand-nth to-id)
+         (let [[row,col] current-cell-id
+               rand-neighbor (->> (neighbors row col grid :present) vals rand-nth to-id)
                rand-neighbor-pos (.indexOf path rand-neighbor)]
 
            ;Is it a loop?

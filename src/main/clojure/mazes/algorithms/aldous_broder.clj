@@ -20,7 +20,7 @@
 
      (if (zero? remaining)
        grid
-       (let [neighbor (->> (neighbors current-cell grid :present) rand-nth)]
+       (let [neighbor (->> (neighbors current-cell grid :present) vals rand-nth)]
 
          (if (empty? (links neighbor))
            (do
