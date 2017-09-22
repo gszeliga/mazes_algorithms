@@ -1,7 +1,59 @@
 (ns mazes.grid
-  (require [mazes.cell :refer :all])
-  (require [mazes.mask :refer :all])
-  (import [mazes.cell.Cell]))
+  (require [mazes.cell :refer :all]
+           [mazes.mask :refer :all])
+  (import [mazes.cell.Cell]
+          [mazes.mask.Mask]))
+
+(defn n-rows [grid]
+  (-> grid meta :rows))
+
+(defn n-cols [grid]
+  (-> grid meta :columns))
+
+(defn n-cells [grid]
+  (* (n-cols grid) (n-rows grid)))
+
+(defn cell-at
+  ([grid cell]
+   (cell-at grid (:row cell) (:column cell)))
+  ([grid row col]
+   (get-in grid [row col])))
+
+(defn rows-from [grid]
+  grid)
+
+(defn cols-from [grid]
+  (apply map vector grid))
+
+(defn cells-from
+  ([grid]
+   (cells-from grid :all))
+  ([grid state]
+   (sequence (comp (remove :dead) (state cell-xforms))  (mapcat identity grid))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;                       Cell XFORMS
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def ^:private cell-xforms
+  (letfn [(cell-in [v]
+            (if (vector? v) (second v) v))]
+
+    {:present (filter (comp some? cell-in))
+
+     :linked (comp
+              (filter (comp some? cell-in))
+              (filter #(->> % cell-in links empty? not)))
+
+     :not-linked (comp
+                  (filter (comp some? cell-in))
+                  (filter #(->> % cell-in links empty?)))
+
+     :all (map identity)}))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;                    Grid definition
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defmulti make-grid (fn [t & args] t))
 
@@ -39,60 +91,71 @@
   ([rows columns] (make-grid :standard rows columns))
   ([rows columns mask] (make-grid :standard rows columns mask)))
 
-(defn n-rows [grid]
-  (-> grid meta :rows))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;                          Random Cell 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn n-cols [grid]
-  (-> grid meta :columns))
+(defmulti rand-cell-at #(-> % meta :type))
 
-(defn n-cells [grid]
-  (* (n-cols grid) (n-rows grid)))
+(defmethod rand-cell-at :polar
+  [grid]
+  (let [row (long (rand (n-rows grid)))
+        col (long (rand (-> grid (get row) count)))]
+    (cell-at grid row col)))
 
-(defn cell-at
-  ([grid cell]
-   (cell-at grid (:row cell) (:column cell)))
-  ([grid row col]
-   (when (and (<= 0 row (n-rows grid))
-              (<= 0 col (n-cols grid)))
-     (get-in grid [row col]))))
-
-(defn rand-cell-at [grid]
+(defmethod rand-cell-at :standard
+  [grid]
   (let [row (long (rand (n-rows grid)))
         col (long (rand (n-cols grid)))]
     (cell-at grid row col)))
 
-(def ^:private cell-xforms
-  (letfn [(cell-in [v]
-            (if (vector? v) (second v) v))]
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;                       Neighbors resolution
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-    {:present (filter (comp some? cell-in))
+(defmulti ^:private neighbors-from
+  (fn [row col grid] (-> grid meta :type)))
 
-     :linked (comp
-              (filter (comp some? cell-in))
-              (filter #(->> % cell-in links empty? not)))
+(defmethod ^:private neighbors-from :standard
+  [row col grid]
+  (letfn [(neighbors-at [row column]
+            {:north [(inc row) column]
+             :south [(dec row) column]
+             :west  [row (dec column)]
+             :east  [row (inc column)]})]
+    (reduce-kv
+     (fn [m k coord]
+       (let [cell (apply cell-at grid coord)
+             is-dead (if (some? cell) (dead? cell) true)]
+         (assoc m k (when-not is-dead cell))))
+     {}
+     (neighbors-at row col))))
 
-     :not-linked (comp
-                  (filter (comp some? cell-in))
-                  (filter #(->> % cell-in links empty?)))
+(defmethod ^:private neighbors-from :polar
+  [row col grid]
+  (letfn [(ratio [row grid]
+            (when (and (-> row zero? not)
+                       (< row (n-rows grid)))
+              (let [c-row-lenght (-> grid (get row) count)
+                    p-row-lenght (-> grid (get (dec row)) count)]
+                (/ c-row-lenght p-row-lenght))))
 
-     :all (map identity)}))
+          (neighbors-at [row column]
+                        (if (zero? row)
+                          {:cw nil :ccw nil :outward nil :inward nil}
+                          (let [o-ratio (ratio (inc row) grid)
+                                c-ratio (ratio row grid)]
+                            {:cw   [row (inc column)]
+                             :ccw   [row (dec column)]
+                             :outward (when o-ratio [(inc row) (/ column o-ratio)])
+                             :inward [(dec row) (/ column c-ratio)]})))]
 
-(defn ^:private neighbors-from
-  ([cell grid]
-   (neighbors-from (:row cell) (:column cell) grid))
-  ([row col grid]
-   (letfn [(neighbors-at [row column]
-             {:north [(inc row) column]
-              :south [(dec row) column]
-              :west  [row (dec column)]
-              :east  [row (inc column)]})]
-     (reduce-kv
-      (fn [m k coord]
-        (let [cell (apply cell-at grid coord)
-              is-dead (if (some? cell) (dead? cell) true)]
-          (assoc m k (when-not is-dead cell))))
-      {}
-      (neighbors-at row col)))))
+    (reduce-kv
+     (fn [m k coord]
+       (let [cell (when coord (apply cell-at grid coord))]
+         (assoc m k cell)))
+     {}
+     (neighbors-at row col))))
 
 (defn neighbors
   ([cell grid]
@@ -102,15 +165,3 @@
   ([row col grid state]
    (into {} (comp (remove :dead)
                   (state cell-xforms)) (neighbors-from row col grid))))
-
-(defn rows-from [grid]
-  grid)
-
-(defn cols-from [grid]
-  (apply map vector grid))
-
-(defn cells-from
-  ([grid]
-   (cells-from grid :all))
-  ([grid state]
-   (sequence (comp (remove :dead) (state cell-xforms))  (mapcat identity grid))))

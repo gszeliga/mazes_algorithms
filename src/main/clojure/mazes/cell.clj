@@ -23,7 +23,9 @@
     (:dead self))
 
   (linked? [self cell]
-    (contains? (-> self :links deref) (to-id cell)))
+    (if cell
+      (contains? (-> self :links deref) (to-id cell))
+      false))
 
   (link
     ([self cell] (link self cell true))
