@@ -31,6 +31,9 @@
           center-y (+ y1 (/ size 2))]
       [center-x center-y])))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;         Draws a Grid as string (:standard type only)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn stringify
   ([grid]
    (stringify grid with-spaces))
@@ -61,8 +64,61 @@
            (str "+" (apply str (repeat (n-cols grid) "---+")) \newline)
            (reverse (rows-from grid)))))
 
-(defn ^:private draw-grid
-  [grid & {:keys [size] :or {size 10}}]
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;                  Inferes proper canvas size
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defmulti ^:private canvas-size (fn [grid _] (-> grid meta :type)))
+
+(defmethod canvas-size :polar [grid size]
+  (let [infered-size (inc (* 2 (* (n-rows grid) size))) ]
+    [infered-size infered-size]))
+
+(defmethod canvas-size :standard  [grid size]
+  [(* (n-cols grid) size)
+   (* (n-rows grid) size)])
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;                          Draws a Grid
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defmulti ^:private draw-grid (fn [grid _] (-> grid meta :type)))
+
+(defmethod draw-grid :polar [grid size]
+
+  (let [rows (n-rows grid)
+        canvas-size (* 2 (* rows size))
+        canvas-center (/ canvas-size 2)]
+
+    (q/ellipse canvas-center canvas-center canvas-size canvas-size)
+
+    (doseq [cell (filter #(-> (:row %) zero? not)
+                         (cells-from grid))]
+
+      (let [cell-ngh (neighbors cell grid)
+            theta (/ (* 2 (Math/PI)) (-> grid (get (:row cell)) count))
+            inner_radius (* (:row cell) size)
+            outer_radius (* (inc (:row cell)) size)
+            theta_ccw (* (:column cell) theta)
+            theta_cw (* (inc (:column cell)) theta)
+            ax (+ canvas-center (* inner_radius (Math/cos theta_ccw)))
+            ay (+ canvas-center (* inner_radius (Math/sin theta_ccw)))
+            bx (+ canvas-center (* outer_radius (Math/cos theta_ccw)))
+            by (+ canvas-center (* outer_radius (Math/sin theta_ccw)))
+            cx (+ canvas-center (* inner_radius (Math/cos theta_cw)))
+            cy (+ canvas-center (* inner_radius (Math/sin theta_cw)))
+            dx (+ canvas-center (* outer_radius (Math/cos theta_cw)))
+            dy (+ canvas-center (* outer_radius (Math/sin theta_cw)))]
+
+        (when-not (linked? cell (:inward cell-ngh))
+          (q/line ax ay cx cy))
+
+        (when-not (linked? cell (:cw cell-ngh))
+          (q/line cx cy dx dy))))
+    )
+  )
+
+(defmethod draw-grid :standard [grid size]
 
   (def walls-from #((walls-at grid size) (:row %) (:column %)))
 
@@ -84,7 +140,7 @@
 
   (defn setup []
     (q/background 255)
-    (draw-grid grid :size size))
+    (draw-grid grid size))
 
   (defn draw-path []
     (when-not (nil? with-path)
@@ -94,8 +150,7 @@
           (apply q/line (concat (apply center-of from) (apply center-of to)))))))
 
   (q/defsketch sample-maze
-    :size [(* (n-cols grid) size)
-           (* (n-rows grid) size)]
+    :size (canvas-size grid size)
     :setup setup
     :draw draw-path))
 
@@ -111,6 +166,8 @@
     (q/frame-rate speed)
     (q/background 255)
 
+
+    ;;TODO Use draw-grid instead
     (doseq [wall  (mapcat identity (->> grid cells-from (map to-id) (map walls-from) (map vals)))]
       (apply q/line wall)))
 
@@ -134,6 +191,7 @@
            (apply q/line (ref-set previous-wall wall)))))))
 
   (q/defsketch sample-maze
+    ;; TODO Use canvas-size instead
     :size [(* (n-cols grid) size)
            (* (n-rows grid) size)]
     :setup setup

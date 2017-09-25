@@ -4,33 +4,6 @@
   (import [mazes.cell.Cell]
           [mazes.mask.Mask]))
 
-(defn n-rows [grid]
-  (-> grid meta :rows))
-
-(defn n-cols [grid]
-  (-> grid meta :columns))
-
-(defn n-cells [grid]
-  (* (n-cols grid) (n-rows grid)))
-
-(defn cell-at
-  ([grid cell]
-   (cell-at grid (:row cell) (:column cell)))
-  ([grid row col]
-   (get-in grid [row col])))
-
-(defn rows-from [grid]
-  grid)
-
-(defn cols-from [grid]
-  (apply map vector grid))
-
-(defn cells-from
-  ([grid]
-   (cells-from grid :all))
-  ([grid state]
-   (sequence (comp (remove :dead) (state cell-xforms))  (mapcat identity grid))))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;                       Cell XFORMS
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -50,6 +23,8 @@
                   (filter #(->> % cell-in links empty?)))
 
      :all (map identity)}))
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;                    Grid definition
@@ -165,3 +140,34 @@
   ([row col grid state]
    (into {} (comp (remove :dead)
                   (state cell-xforms)) (neighbors-from row col grid))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;                    Grid metadata & accesors 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn n-rows [grid]
+  (-> grid meta :rows))
+
+(defn n-cols [grid]
+  (-> grid meta :columns))
+
+(defn n-cells [grid]
+  (* (n-cols grid) (n-rows grid)))
+
+(defn cell-at
+  ([grid cell]
+   (cell-at grid (:row cell) (:column cell)))
+  ([grid row col]
+   (get-in grid [row col])))
+
+(defn rows-from [grid]
+  grid)
+
+(defn cols-from [grid]
+  (apply map vector grid))
+
+(defn cells-from
+  ([grid]
+   (cells-from grid :all))
+  ([grid state]
+   (sequence (comp (remove :dead) (state cell-xforms))  (mapcat identity grid))))
