@@ -12,9 +12,10 @@
   (-> grid (stringify rendered) (print)))
 
 (defn string-it
-  [rows cols & {:keys [using distance-at showing-path with-longest-path]
-                :or [distances-at nil showing-path nil]}]
-  (let [grid (using (make-grid rows cols))
+  [rows cols & {:keys [using distance-at showing-path
+                       with-longest-path]
+                :or   [distances-at nil showing-path nil]}]
+  (let [grid          (using (make-grid rows cols)) 
         rendered-with (cond
                         (some? distance-at)
                         (with-distances (apply distances-from grid distance-at))
@@ -23,12 +24,15 @@
                         (some? with-longest-path)
                         (with-path (longest-path-in grid))
                         :else with-spaces)]
+
     (prn-grid grid :rendered rendered-with)))
 
 (defn draw-it
-  [rows cols & {:keys [using size with-path with-longest-path]
-                :or {size 10}}]
-  (let [grid (using (make-grid rows cols))
+  [rows cols & {:keys [type using size with-path with-longest-path]
+                :or   {size 10 type :standard}}]
+
+
+  (let [grid (using (make-grid type rows cols)) 
         path (cond
                (some? with-path)
                (apply path-to grid with-path)
@@ -39,6 +43,7 @@
 
 (defn animate-it
   [rows cols & {:keys [using size speed]
-                :or {size 10 speed 50}}]
+                :or   {size 10 speed 50}}]
   (let [events (event-stream)]
-    (-> (using (make-grid rows cols) #(offer! events %)) (animate! events :size size :speed speed))))
+    (-> (using (make-grid rows cols) #(offer! events %)) 
+        (animate! events :size size :speed speed))))

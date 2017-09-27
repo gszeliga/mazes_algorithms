@@ -11,25 +11,53 @@
    (walls-at grid size identity identity))
   ([grid size f g]
    (fn [row col]
-     (let [opposite-row (- (dec (n-rows grid)) row) ;we need to use the opposite row because of how quil works
-           x1 (* col size)
-           y1 (* opposite-row size)
-           x2 (+ x1 size)
-           y2 (+ y1 size)]
-       {:east [x2 (f y1) x2 (g y2)]
-        :west [x1 (f y1) x1 (g y2)]
+     ;; we need to use the opposite row because of how quil works
+     (let [opposite-row (- (dec (n-rows grid)) row) 
+           x1           (* col size)
+           y1           (* opposite-row size)
+           x2           (+ x1 size)
+           y2           (+ y1 size)]
+       {:east  [x2 (f y1) x2 (g y2)]
+        :west  [x1 (f y1) x1 (g y2)]
         :north [(f x1) y1 (g x2) y1]
         :south [(f x1) y2 (g x2) y2]}))))
 
-(defn ^:private cell-center
-  [grid size]
+
+
+(defmulti ^:private cell-center 
+  (fn [grid _] (-> grid meta :type)))
+
+(defmethod cell-center :standard [grid size]
   (fn [row col]
-    (let [opposite-row (- (dec (n-rows grid)) row) ;we need to use the opposite row because of how quil works
-          x1 (* col size)
-          y1 (* opposite-row size)
-          center-x (+ x1 (/ size 2))
-          center-y (+ y1 (/ size 2))]
+    ;;we need to use the opposite row because of how quil works
+    (let [opposite-row (- (dec (n-rows grid)) row) 
+          x1           (* col size)
+          y1           (* opposite-row size)
+          center-x     (+ x1 (/ size 2))
+          center-y     (+ y1 (/ size 2))]
       [center-x center-y])))
+
+(defmethod cell-center :polar [grid size]
+  (fn [row col]
+    (let [rows          (n-rows grid)
+          canvas-size   (* 2 (* rows size))
+          canvas-center (/ canvas-size 2)
+          theta         (/ (* 2 (Math/PI)) (-> grid (get row) count))
+          inner_radius  (* row size)
+          outer_radius  (* (inc row) size)
+          theta_ccw     (* col theta)
+          theta_cw      (* (inc col) theta)
+          ax            (+ canvas-center (* inner_radius (Math/cos theta_ccw)))
+          ay            (+ canvas-center (* inner_radius (Math/sin theta_ccw)))
+          bx            (+ canvas-center (* outer_radius (Math/cos theta_ccw)))
+          by            (+ canvas-center (* outer_radius (Math/sin theta_ccw)))
+          cx            (+ canvas-center (* inner_radius (Math/cos theta_cw)))
+          cy            (+ canvas-center (* inner_radius (Math/sin theta_cw)))
+          dx            (+ canvas-center (* outer_radius (Math/cos theta_cw)))
+          dy            (+ canvas-center (* outer_radius (Math/sin theta_cw)))]
+      
+      ;; FIXME Not working as expected
+      [(+ ax (/ 2 (- bx ax))) (+ ay (/ 2 (- ay cy)))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;         Draws a Grid as string (:standard type only)
@@ -40,9 +68,9 @@
   ([grid render-cell]
    (defn cell->str [row-line cell]
      (let [[row-line-top row-line-bottom] row-line
-           neighbors (neighbors cell grid)
-           east-cell (:east neighbors)
-           south-cell (:south neighbors)]
+           neighbors                      (neighbors cell grid)
+           east-cell                      (:east neighbors)
+           south-cell                     (:south neighbors)]
 
        [(str row-line-top (render-cell (to-id cell))
              (if (and (some? east-cell)
@@ -74,7 +102,7 @@
   (let [infered-size (inc (* 2 (* (n-rows grid) size))) ]
     [infered-size infered-size]))
 
-(defmethod canvas-size :standard  [grid size]
+ (defmethod canvas-size :standard  [grid size]
   [(* (n-cols grid) size)
    (* (n-rows grid) size)])
 
@@ -86,8 +114,8 @@
 
 (defmethod draw-grid :polar [grid size]
 
-  (let [rows (n-rows grid)
-        canvas-size (* 2 (* rows size))
+  (let [rows          (n-rows grid)
+        canvas-size   (* 2 (* rows size))
         canvas-center (/ canvas-size 2)]
 
     (q/ellipse canvas-center canvas-center canvas-size canvas-size)
@@ -95,20 +123,20 @@
     (doseq [cell (filter #(-> (:row %) zero? not)
                          (cells-from grid))]
 
-      (let [cell-ngh (neighbors cell grid)
-            theta (/ (* 2 (Math/PI)) (-> grid (get (:row cell)) count))
+      (let [cell-ngh     (neighbors cell grid)
+            theta        (/ (* 2 (Math/PI)) (-> grid (get (:row cell)) count))
             inner_radius (* (:row cell) size)
             outer_radius (* (inc (:row cell)) size)
-            theta_ccw (* (:column cell) theta)
-            theta_cw (* (inc (:column cell)) theta)
-            ax (+ canvas-center (* inner_radius (Math/cos theta_ccw)))
-            ay (+ canvas-center (* inner_radius (Math/sin theta_ccw)))
-            bx (+ canvas-center (* outer_radius (Math/cos theta_ccw)))
-            by (+ canvas-center (* outer_radius (Math/sin theta_ccw)))
-            cx (+ canvas-center (* inner_radius (Math/cos theta_cw)))
-            cy (+ canvas-center (* inner_radius (Math/sin theta_cw)))
-            dx (+ canvas-center (* outer_radius (Math/cos theta_cw)))
-            dy (+ canvas-center (* outer_radius (Math/sin theta_cw)))]
+            theta_ccw    (* (:column cell) theta)
+            theta_cw     (* (inc (:column cell)) theta)
+            ax           (+ canvas-center (* inner_radius (Math/cos theta_ccw)))
+            ay           (+ canvas-center (* inner_radius (Math/sin theta_ccw)))
+            bx           (+ canvas-center (* outer_radius (Math/cos theta_ccw)))
+            by           (+ canvas-center (* outer_radius (Math/sin theta_ccw)))
+            cx           (+ canvas-center (* inner_radius (Math/cos theta_cw)))
+            cy           (+ canvas-center (* inner_radius (Math/sin theta_cw)))
+            dx           (+ canvas-center (* outer_radius (Math/cos theta_cw)))
+            dy           (+ canvas-center (* outer_radius (Math/sin theta_cw)))]
 
         (when-not (linked? cell (:inward cell-ngh))
           (q/line ax ay cx cy))
@@ -134,7 +162,7 @@
 
 (defn draw
   [grid & {:keys [size stroke with-path]
-           :or {size 10 stroke 3 with-path nil}}]
+           :or   {size 10 stroke 3 with-path nil}}]
 
   (def center-of #((cell-center grid size) %1 %2))
 
@@ -156,7 +184,7 @@
 
 (defn animate!
   [grid events & {:keys [size speed stroke]
-                  :or {size 10 speed 10 stroke 5}}]
+                  :or   {size 10 speed 10 stroke 5}}]
 
   (def point-offset (int (Math/ceil (/ stroke 2))))
   (def walls-from #(apply (walls-at grid size) %))
@@ -168,11 +196,11 @@
 
 
     ;;TODO Use draw-grid instead
-    (doseq [wall  (mapcat identity (->> grid cells-from (map to-id) (map walls-from) (map vals)))]
+    (doseq [wall (mapcat identity (->> grid cells-from (map to-id) (map walls-from) (map vals)))]
       (apply q/line wall)))
 
   (defn as-wall [side-a side-b]
-    (let [neighbors-a (apply #(neighbors %1 %2 grid :all) side-a)
+    (let [neighbors-a      (apply #(neighbors %1 %2 grid :all) side-a)
           [at-orientation] (keys (filter #(when-some [cell (val %)]
                                             (= (to-id cell) side-b)) neighbors-a))]
       (at-orientation (walls-to-tear-down-from side-a))))
