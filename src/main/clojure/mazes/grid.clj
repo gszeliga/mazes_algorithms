@@ -37,11 +37,20 @@
 (defn n-cells [grid]
   (* (n-cols grid) (n-rows grid)))
 
-(defn cell-at
+(defmulti cell-at (fn [grid & _] (-> grid meta :type)))
+
+(defmethod cell-at :standard
   ([grid cell]
    (cell-at grid (:row cell) (:column cell)))
   ([grid row col]
    (get-in grid [row col])))
+
+(defmethod cell-at :polar
+  ([grid cell]
+   (cell-at grid (:row cell) (:column cell)))
+  ([grid row col]
+   (let [adj-col (mod col (-> grid (get row) count))]
+     (get-in grid [row adj-col]))))
 
 (defn rows-from [grid]
   grid)
@@ -53,8 +62,8 @@
   ([grid]
    (cells-from grid :all))
   ([grid state]
-   (sequence (comp (remove :dead) (state cell-xforms))  (mapcat identity grid))))
-
+   (sequence (comp (remove :dead) (state cell-xforms)) 
+             (mapcat identity grid))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;                    Grid definition
@@ -65,16 +74,15 @@
 (defmethod make-grid :polar [t rows columns]
   (let [row-height (/ 1.0 rows)]
     (with-meta (reduce (fn [partial-grid row]
-                         (let [radius (/ (float row) rows)
-                               circumference (* 2 (Math/PI) radius)
-                               previous-count (count (get partial-grid (dec row)))
+                         (let [radius               (/ (float row) rows)
+                               circumference        (* 2 (Math/PI) radius)
+                               previous-count       (count (get partial-grid (dec row)))
                                estimated-cell-width (/ circumference previous-count)
-                               ratio (Math/round (/ estimated-cell-width row-height))
-                               n-cells (* previous-count ratio)]
+                               ratio                (Math/round (/ estimated-cell-width row-height))
+                               n-cells              (* previous-count ratio)]
 
                            (conj partial-grid (into [] (map #(make-cell :row row :column % :dead false)
                                                             (range n-cells))))))
-
                        [[(make-cell :row 0 :column 0 :dead false)]]
                        (range 1 rows))
       {:rows rows :columns columns :type t})))
@@ -130,7 +138,7 @@
              :east  [row (inc column)]})]
     (reduce-kv
      (fn [m k coord]
-       (let [cell (apply cell-at grid coord)
+       (let [cell    (apply cell-at grid coord)
              is-dead (if (some? cell) (dead? cell) true)]
          (assoc m k (when-not is-dead cell))))
      {}
@@ -150,10 +158,10 @@
                           {:cw nil :ccw nil :outward nil :inward nil}
                           (let [o-ratio (ratio (inc row) grid)
                                 c-ratio (ratio row grid)]
-                            {:cw   [row (inc column)]
-                             :ccw   [row (dec column)]
+                            {:cw      [row (inc column)]
+                             :ccw     [row (dec column)]
                              :outward (when o-ratio [(inc row) (/ column o-ratio)])
-                             :inward [(dec row) (/ column c-ratio)]})))]
+                             :inward  [(dec row) (/ column c-ratio)]})))]
 
     (reduce-kv
      (fn [m k coord]

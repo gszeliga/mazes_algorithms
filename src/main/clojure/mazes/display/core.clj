@@ -2,9 +2,8 @@
   (use [mazes.grid :only (rows-from neighbors n-cols n-rows cells-from)]
        [mazes.display.core-string :only (with-spaces)]
        [mazes.algorithms.events :only (poll!)])
-  (require [mazes.cell :refer :all] :reload
-           [quil.core :as q :include-macros true])
-  (:gen-class))
+  (require [mazes.cell :refer :all]
+           [quil.core :as q :include-macros true]))
 
 (defn ^:private walls-at
   ([grid size]
@@ -12,7 +11,7 @@
   ([grid size f g]
    (fn [row col]
      ;; we need to use the opposite row because of how quil works
-     (let [opposite-row (- (dec (n-rows grid)) row) 
+     (let [opposite-row (- (dec (n-rows grid)) row)
            x1           (* col size)
            y1           (* opposite-row size)
            x2           (+ x1 size)
@@ -22,15 +21,13 @@
         :north [(f x1) y1 (g x2) y1]
         :south [(f x1) y2 (g x2) y2]}))))
 
-
-
-(defmulti ^:private cell-center 
+(defmulti ^:private cell-center
   (fn [grid _] (-> grid meta :type)))
 
 (defmethod cell-center :standard [grid size]
   (fn [row col]
     ;;we need to use the opposite row because of how quil works
-    (let [opposite-row (- (dec (n-rows grid)) row) 
+    (let [opposite-row (- (dec (n-rows grid)) row)
           x1           (* col size)
           y1           (* opposite-row size)
           center-x     (+ x1 (/ size 2))
@@ -54,10 +51,13 @@
           cx            (+ canvas-center (* inner_radius (Math/cos theta_cw)))
           cy            (+ canvas-center (* inner_radius (Math/sin theta_cw)))
           dx            (+ canvas-center (* outer_radius (Math/cos theta_cw)))
-          dy            (+ canvas-center (* outer_radius (Math/sin theta_cw)))]
-      
+          dy            (+ canvas-center (* outer_radius (Math/sin theta_cw)))
+          [mx my]       (apply map + [[ax ay] [bx by] [cx cy] [dx dy]])]
+
+      ;; Use use the 'Finite set of points' method
+      ;; https://en.wikipedia.org/wiki/Centroid#Of_a_finite_set_of_points
       ;; FIXME Not working as expected
-      [(+ ax (/ 2 (- bx ax))) (+ ay (/ 2 (- ay cy)))])))
+      [(/ mx 4) (/ my 4)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;         Draws a Grid as string (:standard type only)
@@ -99,13 +99,12 @@
 (defmulti ^:private canvas-size (fn [grid _] (-> grid meta :type)))
 
 (defmethod canvas-size :polar [grid size]
-  (let [infered-size (inc (* 2 (* (n-rows grid) size))) ]
+  (let [infered-size (inc (* 2 (* (n-rows grid) size)))]
     [infered-size infered-size]))
 
- (defmethod canvas-size :standard  [grid size]
+(defmethod canvas-size :standard  [grid size]
   [(* (n-cols grid) size)
    (* (n-rows grid) size)])
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;                          Draws a Grid
@@ -142,9 +141,7 @@
           (q/line ax ay cx cy))
 
         (when-not (linked? cell (:cw cell-ngh))
-          (q/line cx cy dx dy))))
-    )
-  )
+          (q/line cx cy dx dy))))))
 
 (defmethod draw-grid :standard [grid size]
 
@@ -192,10 +189,7 @@
 
   (defn setup []
     (q/frame-rate speed)
-    (q/background 255)
-
-
-    ;;TODO Use draw-grid instead
+    (q/background 255);;TODO Use draw-grid instead
     (doseq [wall (mapcat identity (->> grid cells-from (map to-id) (map walls-from) (map vals)))]
       (apply q/line wall)))
 
