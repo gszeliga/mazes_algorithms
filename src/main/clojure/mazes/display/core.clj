@@ -21,6 +21,11 @@
         :north [(f x1) y1 (g x2) y1]
         :south [(f x1) y2 (g x2) y2]}))))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;   Determines the center of a cell according to grid type
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defmulti ^:private cell-center
   (fn [grid _] (-> grid meta :type)))
 
@@ -56,7 +61,6 @@
 
       ;; Use use the 'Finite set of points' method
       ;; https://en.wikipedia.org/wiki/Centroid#Of_a_finite_set_of_points
-      ;; FIXME Not working as expected
       [(/ mx 4) (/ my 4)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -115,7 +119,8 @@
 
   (let [rows          (n-rows grid)
         canvas-size   (* 2 (* rows size))
-        canvas-center (/ canvas-size 2)]
+        canvas-center (/ canvas-size 2)
+        center-in     (cell-center grid size)]
 
     (q/ellipse canvas-center canvas-center canvas-size canvas-size)
 
@@ -135,7 +140,11 @@
             cx           (+ canvas-center (* inner_radius (Math/cos theta_cw)))
             cy           (+ canvas-center (* inner_radius (Math/sin theta_cw)))
             dx           (+ canvas-center (* outer_radius (Math/cos theta_cw)))
-            dy           (+ canvas-center (* outer_radius (Math/sin theta_cw)))]
+            dy           (+ canvas-center (* outer_radius (Math/sin theta_cw)))
+            [mx my]      (center-in (:row cell) (:column cell))]
+
+        ;; (q/with-fill [255 0 0]
+        ;;   (q/text (str "[" (:row cell) "-" (:column cell) "]") mx my))
 
         (when-not (linked? cell (:inward cell-ngh))
           (q/line ax ay cx cy))
@@ -161,7 +170,7 @@
   [grid & {:keys [size stroke with-path]
            :or   {size 10 stroke 3 with-path nil}}]
 
-  (def center-of #((cell-center grid size) %1 %2))
+  (def center-in #((cell-center grid size) %1 %2))
 
   (defn setup []
     (q/background 255)
@@ -172,7 +181,7 @@
       (q/stroke-weight stroke)
       (doseq [[from to] (partition 2 1 with-path)]
         (q/with-stroke [255 0 0]
-          (apply q/line (concat (apply center-of from) (apply center-of to)))))))
+          (apply q/line (concat (apply center-in from) (apply center-in to)))))))
 
   (q/defsketch sample-maze
     :size (canvas-size grid size)

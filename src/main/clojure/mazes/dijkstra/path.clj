@@ -17,7 +17,10 @@
      (let [path (conj breadcrumbs current)]
        (if-not (= current goal)
          (let [step-forward? (partial is-forward-step current)
-               forward-step (->> (apply cell-at grid current) (links) (filter step-forward?) (first))]
+               forward-step  (->> (apply cell-at grid current) 
+                                  (links) 
+                                  (filter step-forward?) 
+                                  (first))]
            (recur path forward-step))
 
          path)))

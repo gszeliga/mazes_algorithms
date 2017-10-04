@@ -149,9 +149,9 @@
   (letfn [(ratio [row grid]
             (when (and (-> row zero? not)
                        (< row (n-rows grid)))
-              (let [c-row-lenght (-> grid (get row) count)
-                    p-row-lenght (-> grid (get (dec row)) count)]
-                (/ c-row-lenght p-row-lenght))))
+              (let [c-row-length (-> grid (get row) count)
+                    p-row-length (-> grid (get (dec row)) count)]
+                (/ c-row-length p-row-length))))
 
           (neighbors-at [row column]
                         (if (zero? row)
@@ -160,7 +160,7 @@
                                 c-ratio (ratio row grid)]
                             {:cw      [row (inc column)]
                              :ccw     [row (dec column)]
-                             :outward (when o-ratio [(inc row) (/ column o-ratio)])
+                             :outward (when o-ratio [(inc row) (* column o-ratio)])
                              :inward  [(dec row) (/ column c-ratio)]})))]
 
     (reduce-kv
