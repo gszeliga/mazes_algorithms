@@ -42,8 +42,8 @@
     (draw grid :size size :with-path path)))
 
 (defn animate-it
-  [rows cols & {:keys [using size speed]
-                :or   {size 10 speed 50}}]
+  [rows cols & {:keys [type using size speed]
+                :or   {type :standard size 10 speed 50}}]
   (let [events (event-stream)]
-    (-> (using (make-grid rows cols) #(offer! events %)) 
+    (-> (using (make-grid type rows cols) #(offer! events %)) 
         (animate! events :size size :speed speed))))

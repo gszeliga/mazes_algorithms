@@ -5,22 +5,6 @@
   (require [mazes.cell :refer :all]
            [quil.core :as q :include-macros true]))
 
-(defn ^:private walls-at
-  ([grid size]
-   (walls-at grid size identity identity))
-  ([grid size f g]
-   (fn [row col]
-     ;; we need to use the opposite row because of how quil works
-     (let [opposite-row (- (dec (n-rows grid)) row)
-           x1           (* col size)
-           y1           (* opposite-row size)
-           x2           (+ x1 size)
-           y2           (+ y1 size)]
-       {:east  [x2 (f y1) x2 (g y2)]
-        :west  [x1 (f y1) x1 (g y2)]
-        :north [(f x1) y1 (g x2) y1]
-        :south [(f x1) y2 (g x2) y2]}))))
-
 (defn- ^:private polar-coord-fn [grid size]
   (let [rows          (n-rows grid)
         canvas-size   (* 2 (* rows size))
@@ -41,6 +25,39 @@
             dy           (+ canvas-center (* outer_radius (Math/sin theta_cw)))]
 
         [[ax ay] [bx by] [cx cy] [dx dy]]))))
+
+(defmulti ^:private walls-at 
+  (fn [grid & _] (-> grid meta :type)))
+
+(defmethod walls-at :standard
+  ([grid size]
+   (walls-at grid size identity identity))
+  ([grid size f g]
+   (fn [row col]
+     ;; we need to use the opposite row because of how quil works
+     (let [opposite-row (- (dec (n-rows grid)) row)
+           x1           (* col size)
+           y1           (* opposite-row size)
+           x2           (+ x1 size)
+           y2           (+ y1 size)]
+       {:east  [x2 (f y1) x2 (g y2)]
+        :west  [x1 (f y1) x1 (g y2)]
+        :north [(f x1) y1 (g x2) y1]
+        :south [(f x1) y2 (g x2) y2]}))))
+
+(defmethod walls-at :polar
+  ([grid size]
+   (walls-at grid size identity identity))
+  ([grid size f g]
+   (let [polar-coord (polar-coord-fn grid size)]
+     (fn [row col]
+       (let [[a b c d] (polar-coord row col)]
+         {
+          :cw      (flatten [c d])
+          :ccw     (flatten [a b]) ;not needed for initial drawing
+          :outward (flatten [b d]) ;not needed for initial drawing 
+          :inward  (flatten [a c])
+          })))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;   Determines the center of a cell according to grid type
@@ -192,7 +209,7 @@
 
   (defn setup []
     (q/frame-rate speed)
-    (q/background 255);;TODO Use draw-grid instead
+    (q/background 255)
     (doseq [wall (mapcat identity (->> grid cells-from (map to-id) (map walls-from) (map vals)))]
       (apply q/line wall)))
 
@@ -216,8 +233,8 @@
            (apply q/line (ref-set previous-wall wall)))))))
 
   (q/defsketch sample-maze
-    ;; TODO Use canvas-size instead
-    :size [(* (n-cols grid) size)
-           (* (n-rows grid) size)]
+    :size (canvas-size grid size) 
     :setup setup
     :draw (do-draw (ref nil))))
+
+
