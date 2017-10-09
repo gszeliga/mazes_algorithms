@@ -21,6 +21,26 @@
         :north [(f x1) y1 (g x2) y1]
         :south [(f x1) y2 (g x2) y2]}))))
 
+(defn- ^:private polar-coord-fn [grid size]
+  (let [rows          (n-rows grid)
+        canvas-size   (* 2 (* rows size))
+        canvas-center (/ canvas-size 2)]
+    (fn [row col]
+      (let [theta        (/ (* 2 (Math/PI)) (-> grid (get row) count))
+            inner_radius (* row size)
+            outer_radius (* (inc row) size)
+            theta_ccw    (* col theta)
+            theta_cw     (* (inc col) theta)
+            ax           (+ canvas-center (* inner_radius (Math/cos theta_ccw)))
+            ay           (+ canvas-center (* inner_radius (Math/sin theta_ccw)))
+            bx           (+ canvas-center (* outer_radius (Math/cos theta_ccw)))
+            by           (+ canvas-center (* outer_radius (Math/sin theta_ccw)))
+            cx           (+ canvas-center (* inner_radius (Math/cos theta_cw)))
+            cy           (+ canvas-center (* inner_radius (Math/sin theta_cw)))
+            dx           (+ canvas-center (* outer_radius (Math/cos theta_cw)))
+            dy           (+ canvas-center (* outer_radius (Math/sin theta_cw)))]
+
+        [[ax ay] [bx by] [cx cy] [dx dy]]))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;   Determines the center of a cell according to grid type
@@ -40,28 +60,12 @@
       [center-x center-y])))
 
 (defmethod cell-center :polar [grid size]
-  (fn [row col]
-    (let [rows          (n-rows grid)
-          canvas-size   (* 2 (* rows size))
-          canvas-center (/ canvas-size 2)
-          theta         (/ (* 2 (Math/PI)) (-> grid (get row) count))
-          inner_radius  (* row size)
-          outer_radius  (* (inc row) size)
-          theta_ccw     (* col theta)
-          theta_cw      (* (inc col) theta)
-          ax            (+ canvas-center (* inner_radius (Math/cos theta_ccw)))
-          ay            (+ canvas-center (* inner_radius (Math/sin theta_ccw)))
-          bx            (+ canvas-center (* outer_radius (Math/cos theta_ccw)))
-          by            (+ canvas-center (* outer_radius (Math/sin theta_ccw)))
-          cx            (+ canvas-center (* inner_radius (Math/cos theta_cw)))
-          cy            (+ canvas-center (* inner_radius (Math/sin theta_cw)))
-          dx            (+ canvas-center (* outer_radius (Math/cos theta_cw)))
-          dy            (+ canvas-center (* outer_radius (Math/sin theta_cw)))
-          [mx my]       (apply map + [[ax ay] [bx by] [cx cy] [dx dy]])]
-
-      ;; Use use the 'Finite set of points' method
-      ;; https://en.wikipedia.org/wiki/Centroid#Of_a_finite_set_of_points
-      [(/ mx 4) (/ my 4)])))
+  (let  [polar-coord (polar-coord-fn grid size)]
+    (fn [row col]
+      (let [[mx my] (apply map + (polar-coord row col))]
+        ;; Use use the 'Finite set of points' method
+        ;; https://en.wikipedia.org/wiki/Centroid#Of_a_finite_set_of_points
+        [(/ mx 4) (/ my 4)]))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;         Draws a Grid as string (:standard type only)
@@ -120,28 +124,18 @@
   (let [rows          (n-rows grid)
         canvas-size   (* 2 (* rows size))
         canvas-center (/ canvas-size 2)
-        center-in     (cell-center grid size)]
+        center-in     (cell-center grid size)
+        polar-coord   (polar-coord-fn grid size)]
 
     (q/ellipse canvas-center canvas-center canvas-size canvas-size)
 
     (doseq [cell (filter #(-> (:row %) zero? not)
                          (cells-from grid))]
 
-      (let [cell-ngh     (neighbors cell grid)
-            theta        (/ (* 2 (Math/PI)) (-> grid (get (:row cell)) count))
-            inner_radius (* (:row cell) size)
-            outer_radius (* (inc (:row cell)) size)
-            theta_ccw    (* (:column cell) theta)
-            theta_cw     (* (inc (:column cell)) theta)
-            ax           (+ canvas-center (* inner_radius (Math/cos theta_ccw)))
-            ay           (+ canvas-center (* inner_radius (Math/sin theta_ccw)))
-            bx           (+ canvas-center (* outer_radius (Math/cos theta_ccw)))
-            by           (+ canvas-center (* outer_radius (Math/sin theta_ccw)))
-            cx           (+ canvas-center (* inner_radius (Math/cos theta_cw)))
-            cy           (+ canvas-center (* inner_radius (Math/sin theta_cw)))
-            dx           (+ canvas-center (* outer_radius (Math/cos theta_cw)))
-            dy           (+ canvas-center (* outer_radius (Math/sin theta_cw)))
-            [mx my]      (center-in (:row cell) (:column cell))]
+      (let [cell-ngh                          (neighbors cell grid)
+            row                               (:row cell)
+            col                               (:column cell)
+            [[ax ay] [bx by] [cx cy] [dx dy]] (polar-coord row col)]
 
         ;; (q/with-fill [255 0 0]
         ;;   (q/text (str "[" (:row cell) "-" (:column cell) "]") mx my))

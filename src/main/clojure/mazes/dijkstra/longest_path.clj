@@ -7,7 +7,7 @@
 
 (defn longest-path-in [grid]
 
-  (let [[most-distant-cell, _] (greatest-distance-in (distances-from grid 0 0))
+  (let [[most-distant-cell, _] (greatest-distance-in (distances-from grid 1 1))
         distances (apply distances-from grid most-distant-cell)
         [goal, _] (greatest-distance-in distances)]
 
