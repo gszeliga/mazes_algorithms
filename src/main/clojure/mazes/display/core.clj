@@ -51,12 +51,12 @@
   ([grid size f g]
    (let [polar-coord (polar-coord-fn grid size)]
      (fn [row col]
-       (let [[a b c d] (polar-coord row col)]
+       (let [[[ax ay] [bx by] [cx cy] [dx dy]] (polar-coord row col)]
          {
-          :cw      (flatten [c d])
-          :ccw     (flatten [a b]) ;not needed for initial drawing
-          :outward (flatten [b d]) ;not needed for initial drawing 
-          :inward  (flatten [a c])
+          :cw      [cx cy dx dy]
+          :ccw     [ax ay bx by]
+          :outward [bx by dx dy]
+          :inward  [ax ay cx cy]
           })))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -121,7 +121,8 @@
 ;                  Inferes proper canvas size
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defmulti ^:private canvas-size (fn [grid _] (-> grid meta :type)))
+(defmulti ^:private canvas-size 
+  (fn [grid _] (-> grid meta :type)))
 
 (defmethod canvas-size :polar [grid size]
   (let [infered-size (inc (* 2 (* (n-rows grid) size)))]
@@ -134,9 +135,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;                          Draws a Grid
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defmulti ^:private draw-grid (fn [grid _] (-> grid meta :type)))
+(defmulti ^:private draw-grid 
+  (fn [grid & _] (-> grid meta :type)))
 
-(defmethod draw-grid :polar [grid size]
+(defmethod draw-grid :polar [grid size show-links]
 
   (let [rows          (n-rows grid)
         canvas-size   (* 2 (* rows size))
@@ -157,13 +159,13 @@
         ;; (q/with-fill [255 0 0]
         ;;   (q/text (str "[" (:row cell) "-" (:column cell) "]") mx my))
 
-        (when-not (linked? cell (:inward cell-ngh))
+        (when-not (and show-links (linked? cell (:inward cell-ngh)))
           (q/line ax ay cx cy))
 
-        (when-not (linked? cell (:cw cell-ngh))
+        (when-not (and show-links (linked? cell (:cw cell-ngh)))
           (q/line cx cy dx dy))))))
 
-(defmethod draw-grid :standard [grid size]
+(defmethod draw-grid :standard [grid size show-links]
 
   (def walls-from #((walls-at grid size) (:row %) (:column %)))
 
@@ -171,6 +173,7 @@
     (let [walls (walls-from cell)]
       (doseq [[orientation neighbor] (neighbors cell grid)]
         (when (or (nil? neighbor)
+                  (not show-links)
                   (not (linked? cell neighbor)))
           (apply q/line (orientation walls))))))
 
@@ -185,7 +188,7 @@
 
   (defn setup []
     (q/background 255)
-    (draw-grid grid size))
+    (draw-grid grid size true))
 
   (defn draw-path []
     (when-not (nil? with-path)
@@ -210,8 +213,7 @@
   (defn setup []
     (q/frame-rate speed)
     (q/background 255)
-    (doseq [wall (mapcat identity (->> grid cells-from (map to-id) (map walls-from) (map vals)))]
-      (apply q/line wall)))
+    (draw-grid grid size false))
 
   (defn as-wall [side-a side-b]
     (let [neighbors-a      (apply #(neighbors %1 %2 grid :all) side-a)
