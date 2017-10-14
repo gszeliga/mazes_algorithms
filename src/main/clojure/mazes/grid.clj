@@ -25,7 +25,7 @@
      :all (map identity)}))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;                    Grid metadata & accesors 
+;;                    Grid metadata & accesors 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn n-rows [grid]
@@ -36,21 +36,6 @@
 
 (defn n-cells [grid]
   (* (n-cols grid) (n-rows grid)))
-
-(defmulti cell-at (fn [grid & _] (-> grid meta :type)))
-
-(defmethod cell-at :standard
-  ([grid cell]
-   (cell-at grid (:row cell) (:column cell)))
-  ([grid row col]
-   (get-in grid [row col])))
-
-(defmethod cell-at :polar
-  ([grid cell]
-   (cell-at grid (:row cell) (:column cell)))
-  ([grid row col]
-   (let [adj-col (mod col (-> grid (get row) count))]
-     (get-in grid [row adj-col]))))
 
 (defn rows-from [grid]
   grid)
@@ -66,12 +51,39 @@
              (mapcat identity grid))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;                    Cell accesors
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defmulti cell-at 
+  (fn [grid & _] (-> grid meta :type)))
+
+(defmethod cell-at :standard
+  ([grid cell]
+   (cell-at grid (:row cell) (:column cell)))
+  ([grid row col]
+   (get-in grid [row col])))
+
+(defmethod cell-at :hex
+  ([grid cell]
+   (cell-at grid (:row cell) (:column cell)))
+  ([grid row col]
+   (get-in grid [row col])))
+
+(defmethod cell-at :polar
+  ([grid cell]
+   (cell-at grid (:row cell) (:column cell)))
+  ([grid row col]
+   (let [adj-col (mod col (-> grid (get row) count))]
+     (get-in grid [row adj-col]))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;                    Grid definition
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defmulti make-grid (fn [t & args] t))
 
-(defmethod make-grid :polar [t rows columns]
+(defmethod make-grid :polar 
+  [t rows columns]
   (let [row-height (/ 1.0 rows)]
     (with-meta (reduce (fn [partial-grid row]
                          (let [radius               (/ (float row) rows)
@@ -100,12 +112,20 @@
                         (range rows)))
      {:rows rows :columns columns :mask mask :type t})))
 
+(defmethod make-grid :hex
+  ([t rows columns]
+   (make-grid t rows columns (make-mask rows columns)))
+  ([t rows columns mask]
+   (vary-meta
+    (make-grid :standard rows columns mask)
+    assoc :type :hex)))
+
 (defmethod make-grid :default
   ([rows columns] (make-grid :standard rows columns))
   ([rows columns mask] (make-grid :standard rows columns mask)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;                          Random Cell 
+;                          Random resolution
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defmulti rand-cell-at #(-> % meta :type))
@@ -129,7 +149,7 @@
 (defmulti ^:private neighbors-from
   (fn [row col grid] (-> grid meta :type)))
 
-(defmethod ^:private neighbors-from :standard
+(defmethod neighbors-from :standard
   [row col grid]
   (letfn [(neighbors-at [row column]
             {:north [(inc row) column]
@@ -144,7 +164,26 @@
      {}
      (neighbors-at row col))))
 
-(defmethod ^:private neighbors-from :polar
+(defmethod neighbors-from :hex
+  [row col grid]
+  (letfn [(neighbors-at [row col]
+            (let [north-diagonal (if (even? col) (dec row) row)
+                  south-diagonal (if (even? col) row (inc row))]
+              {:northwest [north-diagonal (dec col)]
+               :north     [(dec row) col]
+               :northeast [north-diagonal (inc col)]
+               :southwest [south-diagonal (dec col)]
+               :south     [(inc row) col]
+               :southeast [south-diagonal (inc col)]}))]
+    (reduce-kv
+     (fn [m k coord]
+       (let [cell    (apply cell-at grid coord)
+             is-dead (if (some? cell) (dead? cell) true)]
+         (assoc m k (when-not is-dead cell))))
+     {}
+     (neighbors-at row col))))
+
+(defmethod neighbors-from :polar
   [row col grid]
   (letfn [(ratio [row grid]
             (when (and (-> row zero? not)
