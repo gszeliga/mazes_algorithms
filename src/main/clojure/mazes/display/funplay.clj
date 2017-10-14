@@ -28,15 +28,14 @@
     (prn-grid grid :rendered rendered-with)))
 
 (defn draw-it
-  [rows cols & {:keys [type using size with-path with-longest-path]
-                :or   {size 10 type :standard}}]
-
+  [rows cols & {:keys [type using size path]
+                :or   {size 10 type :standard path nil}}]
 
   (let [grid (using (make-grid type rows cols)) 
         path (cond
-               (some? with-path)
-               (apply path-to grid with-path)
-               (some? with-longest-path)
+               (vector? path)
+               (apply path-to grid path)
+               (= :longest path)
                (longest-path-in grid)
                :else nil)]
     (draw grid :size size :with-path path)))

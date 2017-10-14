@@ -143,10 +143,12 @@
         ;; (q/with-fill [255 0 0]
         ;;   (q/text (str "[" (:row cell) "-" (:column cell) "]") mx my))
 
-        (when-not (and show-links (linked? cell (:inward cell-ngh)))
+        (when-not (and show-links 
+                       (linked? cell (:inward cell-ngh)))
           (q/line ax ay cx cy))
 
-        (when-not (and show-links (linked? cell (:cw cell-ngh)))
+        (when-not (and show-links 
+                       (linked? cell (:cw cell-ngh)))
           (q/line cx cy dx dy))))))
 
 (defmethod draw-grid :standard [grid size show-links]
