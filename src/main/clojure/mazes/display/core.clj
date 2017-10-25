@@ -4,7 +4,8 @@
        [mazes.algorithms.events :only (poll!)])
   (require [mazes.cell :refer :all]
            [quil.core :as q :include-macros true]
-           [mazes.display.core-polar :refer (polar-coord-fn)]))
+           [mazes.display.core-polar :refer (polar-coord-fn)]
+           [mazes.display.core-sigma :refer (sigma-coord-fn)]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;           Lists coordinates from all walls in a cell
@@ -41,6 +42,22 @@
           :ccw     [ax ay bx by]
           :outward [bx by dx dy]
           :inward  [ax ay cx cy]
+          })))))
+
+(defmethod walls-at :sigma
+  ([grid size]
+   (walls-at grid size identity identity))
+  ([grid size f g]
+   (let [sigma-coord (sigma-coord-fn size)]
+     (fn [row col]
+       (let [[fwm nwn nen fem nes nws] (sigma-coord row col)]
+         {
+          :northwest (into [] (concat fwm nwn))
+          :north     (into [] (concat nwn nen))
+          :northeast (into [] (concat nen fem))
+          :southeast (into [] (concat fem nes))
+          :south     (into [] (concat nes nws))
+          :southwest (into [] (concat nws fwm))
           })))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -112,6 +129,13 @@
   (let [infered-size (inc (* 2 (* (n-rows grid) size)))]
     [infered-size infered-size]))
 
+(defmethod canvas-size :sigma [grid size]
+  (let [a-size (/ size 2.0)
+        b-size (/ (* size (Math/sqrt 3)) 2.0)
+        width  (+ a-size 0.5 (* 3 a-size (n-cols grid)))
+        height (+ b-size 0.5 (* b-size 2 (n-rows grid)))]
+    [width height]))
+
 (defmethod canvas-size :standard  [grid size]
   [(* (n-cols grid) size)
    (* (n-rows grid) size)])
@@ -119,11 +143,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;                          Draws a Grid
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defmulti ^:private draw-grid 
   (fn [grid & _] (-> grid meta :type)))
 
-(defmethod draw-grid :polar [grid size show-links]
-
+(defmethod draw-grid :polar
+  [grid size show-links]
   (let [rows          (n-rows grid)
         canvas-size   (* 2 (* rows size))
         canvas-center (/ canvas-size 2)
@@ -151,7 +176,20 @@
                        (linked? cell (:cw cell-ngh)))
           (q/line cx cy dx dy))))))
 
-(defmethod draw-grid :standard [grid size show-links]
+(defmethod draw-grid :sigma
+  [grid size show-links]
+
+  (let [walls-from (walls-at grid size)]
+
+    (doseq [[orientation wall] (apply concat 
+                                      (->> (cells-from grid)
+                                           (map to-id)
+                                           (map (partial apply walls-from))))]
+
+      (apply q/line wall))))
+
+(defmethod draw-grid :standard
+  [grid size show-links]
 
   (def walls-from #((walls-at grid size) (:row %) (:column %)))
 

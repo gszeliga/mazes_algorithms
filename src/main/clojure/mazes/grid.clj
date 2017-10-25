@@ -105,13 +105,13 @@
                         (range rows)))
      {:rows rows :columns columns :mask mask :type t})))
 
-(defmethod make-grid :hex
+(defmethod make-grid :sigma
   ([t rows columns]
    (make-grid t rows columns (make-mask rows columns)))
   ([t rows columns mask]
    (vary-meta
     (make-grid :standard rows columns mask)
-    assoc :type :hex)))
+    assoc :type :sigma)))
 
 (defmethod make-grid :default
   ([rows columns] (make-grid :standard rows columns))
@@ -161,7 +161,7 @@
              :east  [row (inc column)]})]
     (neighbors-fn row col grid coords-fn)))
 
-(defmethod neighbors-from :hex
+(defmethod neighbors-from :sigma
   [row col grid]
   (letfn [(coords-fn [row col]
             (let [north-diagonal (if (even? col) (dec row) row)
