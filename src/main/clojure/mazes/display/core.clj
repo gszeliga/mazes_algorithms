@@ -185,7 +185,6 @@
                                       (->> (cells-from grid)
                                            (map to-id)
                                            (map (partial apply walls-from))))]
-
       (apply q/line wall))))
 
 (defmethod draw-grid :standard

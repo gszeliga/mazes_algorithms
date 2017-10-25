@@ -129,7 +129,7 @@
         col (long (rand (-> grid (get row) count)))]
     (cell-at grid row col)))
 
-(defmethod rand-cell-at :standard
+(defmethod rand-cell-at :default
   [grid]
   (let [row (long (rand (n-rows grid)))
         col (long (rand (n-cols grid)))]
@@ -172,7 +172,7 @@
                :southwest [south-diagonal (dec col)]
                :south     [(inc row) col]
                :southeast [south-diagonal (inc col)]}))]
-    (neighbors-fn row col coords-fn)))
+    (neighbors-fn row col grid coords-fn)))
 
 (defmethod neighbors-from :polar
   [row col grid]
@@ -201,5 +201,7 @@
   ([cell grid state]
    (neighbors (:row cell) (:column cell) grid state))
   ([row col grid state]
-   (into {} (comp (remove :dead)
-                  (state cell-xforms)) (neighbors-from row col grid))))
+   (into {}
+         (comp (remove :dead)
+               (state cell-xforms))
+         (neighbors-from row col grid))))
