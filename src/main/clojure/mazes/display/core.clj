@@ -16,8 +16,6 @@
 
 (defmethod walls-at :standard
   ([grid size]
-   (walls-at grid size identity identity))
-  ([grid size f g]
    (fn [row col]
      ;; we need to use the opposite row because of how quil works
      (let [opposite-row (- (dec (n-rows grid)) row)
@@ -25,15 +23,13 @@
            y1           (* opposite-row size)
            x2           (+ x1 size)
            y2           (+ y1 size)]
-       {:east  [x2 (f y1) x2 (g y2)]
-        :west  [x1 (f y1) x1 (g y2)]
-        :north [(f x1) y1 (g x2) y1]
-        :south [(f x1) y2 (g x2) y2]}))))
+       {:east  [x2 y1 x2 y2]
+        :west  [x1 y1 x1 y2]
+        :north [x1 y1 x2 y1]
+        :south [x1 y2 x2 y2]}))))
 
 (defmethod walls-at :polar
   ([grid size]
-   (walls-at grid size identity identity))
-  ([grid size f g]
    (let [polar-coord (polar-coord-fn grid size)]
      (fn [row col]
        (let [[[ax ay] [bx by] [cx cy] [dx dy]] (polar-coord row col)]
@@ -41,13 +37,10 @@
           :cw      [cx cy dx dy]
           :ccw     [ax ay bx by]
           :outward [bx by dx dy]
-          :inward  [ax ay cx cy]
-          })))))
+          :inward  [ax ay cx cy]})))))
 
 (defmethod walls-at :sigma
   ([grid size]
-   (walls-at grid size identity identity))
-  ([grid size f g]
    (let [sigma-coord (sigma-coord-fn size)]
      (fn [row col]
        (let [[fwm nwn nen fem nes nws] (sigma-coord row col)]
@@ -57,12 +50,20 @@
           :northeast (into [] (concat nen fem))
           :southeast (into [] (concat fem nes))
           :south     (into [] (concat nes nws))
-          :southwest (into [] (concat nws fwm))
-          })))))
+          :southwest (into [] (concat nws fwm))})))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;   Determines the center of a cell according to grid type
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn- ^:private cell-center-fn [grid size coords-fn]
+  (fn [row col]
+    (let [coords      (coords-fn row col)
+          coords-n    (count coords)
+          [sumx sumy] (apply map + coords)]
+      ;; Use use the 'Finite set of points' method
+      ;; https://en.wikipedia.org/wiki/Centroid#Of_a_finite_set_of_points
+      [(/ sumx coords-n) (/ sumy coords-n)])))
 
 (defmulti ^:private cell-center
   (fn [grid _] (-> grid meta :type)))
@@ -78,12 +79,10 @@
       [center-x center-y])))
 
 (defmethod cell-center :polar [grid size]
-  (let  [polar-coord (polar-coord-fn grid size)]
-    (fn [row col]
-      (let [[mx my] (apply map + (polar-coord row col))]
-        ;; Use use the 'Finite set of points' method
-        ;; https://en.wikipedia.org/wiki/Centroid#Of_a_finite_set_of_points
-        [(/ mx 4) (/ my 4)]))))
+  (cell-center-fn grid size (polar-coord-fn grid size)))
+
+(defmethod cell-center :sigma [grid size]
+  (cell-center-fn grid size (sigma-coord-fn size)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;         Draws a Grid as string (:standard type only)
@@ -176,29 +175,18 @@
                        (linked? cell (:cw cell-ngh)))
           (q/line cx cy dx dy))))))
 
-(defmethod draw-grid :sigma
+(defmethod draw-grid :default
   [grid size show-links]
+  (letfn [(walls-from [c]
+            ((walls-at grid size) (:row c) (:column c)))]
+    (defn draw-cell [cell]
+      (let [walls (walls-from cell)]
+        (doseq [[orientation neighbor] (neighbors cell grid)]
+          (when (or (nil? neighbor)
+                    (not show-links)
+                    (not (linked? cell neighbor)))
+            (apply q/line (orientation walls)))))))
 
-  (let [walls-from (walls-at grid size)]
-
-    (doseq [[orientation wall] (apply concat 
-                                      (->> (cells-from grid)
-                                           (map to-id)
-                                           (map (partial apply walls-from))))]
-      (apply q/line wall))))
-
-(defmethod draw-grid :standard
-  [grid size show-links]
-
-  (def walls-from #((walls-at grid size) (:row %) (:column %)))
-
-  (defn draw-cell [cell]
-    (let [walls (walls-from cell)]
-      (doseq [[orientation neighbor] (neighbors cell grid)]
-        (when (or (nil? neighbor)
-                  (not show-links)
-                  (not (linked? cell neighbor)))
-          (apply q/line (orientation walls))))))
 
   (doseq [cell (cells-from grid)]
     (draw-cell cell)))
@@ -227,14 +215,10 @@
 
 (defn animate!
   [grid events & {:keys [size speed stroke]
-                  :or   {size 10 speed 10 stroke 5}}]
+                  :or   {size 10 speed 10 stroke 1}}]
 
-  (def point-offset (int (Math/ceil (/ stroke 2))))
-  (def walls-from #(apply (walls-at grid size) %))
-  (def walls-to-tear-down-from 
-    #(apply (walls-at grid size 
-                      (partial + point-offset) 
-                      (fn [v] (- v point-offset))) %))
+  (def walls-from 
+    #(apply (walls-at grid size) %))
 
   (defn setup []
     (q/frame-rate speed)
@@ -245,11 +229,11 @@
     (let [neighbors-a      (apply #(neighbors %1 %2 grid :all) side-a)
           [at-orientation] (keys (filter #(when-some [cell (val %)]
                                             (= (to-id cell) side-b)) neighbors-a))]
-      (at-orientation (walls-to-tear-down-from side-a))))
+      (at-orientation (walls-from side-a))))
 
   (defn do-draw [previous-wall]
     (fn []
-      (q/stroke-cap :project)
+      (q/stroke-cap :square)
       (q/stroke-weight stroke)
 
       (doseq [wall (->> events (poll! :wall-down) (map #(apply as-wall (:values %))))]
