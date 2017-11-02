@@ -93,7 +93,7 @@
                        (range 1 rows))
       {:rows rows :columns columns :type t})))
 
-(defmethod make-grid :standard
+(defmethod make-grid :default
   ([t rows columns]
    (make-grid t rows columns (make-mask rows columns)))
   ([t rows columns mask]
@@ -104,18 +104,6 @@
                                 (range columns)))
                         (range rows)))
      {:rows rows :columns columns :mask mask :type t})))
-
-(defmethod make-grid :sigma
-  ([t rows columns]
-   (make-grid t rows columns (make-mask rows columns)))
-  ([t rows columns mask]
-   (vary-meta
-    (make-grid :standard rows columns mask)
-    assoc :type :sigma)))
-
-(defmethod make-grid :default
-  ([rows columns] (make-grid :standard rows columns))
-  ([rows columns mask] (make-grid :standard rows columns mask)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;                          Random resolution
@@ -193,6 +181,17 @@
                  :outward (when o-ratio [(inc row) (* column o-ratio)])
                  :inward  [(dec row) (/ column c-ratio)]})))]
 
+    (neighbors-fn row col grid coords-fn)))
+
+(defmethod neighbors-from :triangle
+  [row col grid]
+  (letfn [(coords-fn [row col]
+            (let [upright? (even? (+ row col))]
+              {
+               :north (when (not upright?) [(dec row) col])
+               :south (when upright? [(inc row) col])
+               :west  [row (dec col)]
+               :east  [row (inc col)]}))]
     (neighbors-fn row col grid coords-fn)))
 
 (defn neighbors

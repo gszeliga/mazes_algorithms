@@ -5,7 +5,8 @@
   (require [mazes.cell :refer :all]
            [quil.core :as q :include-macros true]
            [mazes.display.core-polar :refer (polar-coord-fn)]
-           [mazes.display.core-sigma :refer (sigma-coord-fn)]))
+           [mazes.display.core-sigma :refer (sigma-coord-fn)]
+           [mazes.display.core-triangle :refer (triangle-coord-fn)]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;           Lists coordinates from all walls in a cell
@@ -52,11 +53,23 @@
           :south     (into [] (concat nes nws))
           :southwest (into [] (concat nws fwm))})))))
 
+(defmethod walls-at :triangle
+  [grid size]
+  (let [triangle-coord (triangle-coord-fn size)]
+    (fn [row col]
+      (let [upright?        (even? (+ row col))
+            [west mid east] (triangle-coord row col)]
+        {:east  (into [] (concat mid east))
+         :north (when (not upright?) (into [] (concat east west)))
+         :west  (into [] (concat west mid))
+         :south (when upright? (into [] (concat east west)))}))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;   Determines the center of a cell according to grid type
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn- ^:private cell-center-fn [grid size coords-fn]
+(defn- ^:private cell-center-fn
+  [grid size coords-fn]
   (fn [row col]
     (let [coords      (coords-fn row col)
           coords-n    (count coords)
@@ -68,7 +81,8 @@
 (defmulti ^:private cell-center
   (fn [grid _] (-> grid meta :type)))
 
-(defmethod cell-center :standard [grid size]
+(defmethod cell-center :standard
+  [grid size]
   (fn [row col]
     ;;we need to use the opposite row because of how quil works
     (let [opposite-row (- (dec (n-rows grid)) row)
@@ -78,11 +92,17 @@
           center-y     (+ y1 (/ size 2))]
       [center-x center-y])))
 
-(defmethod cell-center :polar [grid size]
+(defmethod cell-center :polar
+  [grid size]
   (cell-center-fn grid size (polar-coord-fn grid size)))
 
-(defmethod cell-center :sigma [grid size]
+(defmethod cell-center :sigma
+  [grid size]
   (cell-center-fn grid size (sigma-coord-fn size)))
+
+(defmethod cell-center :triangle
+  [grid size]
+  (cell-center-fn grid size (triangle-coord-fn size)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;         Draws a Grid as string (:standard type only)
@@ -124,18 +144,35 @@
 (defmulti ^:private canvas-size 
   (fn [grid _] (-> grid meta :type)))
 
-(defmethod canvas-size :polar [grid size]
+(defmethod canvas-size :polar
+  [grid size]
   (let [infered-size (inc (* 2 (* (n-rows grid) size)))]
     [infered-size infered-size]))
 
-(defmethod canvas-size :sigma [grid size]
+(defmethod canvas-size :sigma
+  [grid size]
   (let [a-size (/ size 2.0)
         b-size (/ (* size (Math/sqrt 3)) 2.0)
         width  (+ a-size 0.5 (* 3 a-size (n-cols grid)))
         height (+ b-size 0.5 (* b-size 2 (n-rows grid)))]
     [width height]))
 
-(defmethod canvas-size :standard  [grid size]
+(defmethod canvas-size :triangle
+  [grid size]
+  (let [tri-height (-> size
+                       (* (Math/sqrt 3))
+                       (/ 2.0))
+        width      (-> (inc (n-cols grid))
+                       (* size)
+                       (/ 2.0)
+                       int)
+        height     (-> (n-rows grid)
+                       (* tri-height)
+                       int)]
+    [(inc width) (inc height)]))
+
+(defmethod canvas-size :standard
+  [grid size]
   [(* (n-cols grid) size)
    (* (n-rows grid) size)])
 
@@ -181,11 +218,12 @@
             ((walls-at grid size) (:row c) (:column c)))]
     (defn draw-cell [cell]
       (let [walls (walls-from cell)]
-        (doseq [[orientation neighbor] (neighbors cell grid)]
-          (when (or (nil? neighbor)
+        (doseq [[orientation nghr-cell] (neighbors cell grid)]
+          (when (or (nil? nghr-cell)
                     (not show-links)
-                    (not (linked? cell neighbor)))
-            (apply q/line (orientation walls)))))))
+                    (not (linked? cell nghr-cell)))
+            (when-let [wall (orientation walls)] 
+              (apply q/line wall)))))))
 
 
   (doseq [cell (cells-from grid)]
@@ -206,7 +244,8 @@
       (q/stroke-weight stroke)
       (doseq [[from to] (partition 2 1 with-path)]
         (q/with-stroke [255 0 0]
-          (apply q/line (concat (apply center-in from) (apply center-in to)))))))
+          (apply q/line (concat (apply center-in from)
+                                (apply center-in to)))))))
 
   (q/defsketch sample-maze
     :size (canvas-size grid size)
@@ -233,19 +272,22 @@
 
   (defn do-draw [previous-wall]
     (fn []
-      (q/stroke-cap :square)
+      (q/stroke-cap :round)
       (q/stroke-weight stroke)
 
-      (doseq [wall (->> events (poll! :wall-down) (map #(apply as-wall (:values %))))]
+      (doseq [wall (->> events
+                        (poll! :wall-down)
+                        (map #(apply as-wall (:values %))))]
         (dosync
          (when-let [p-wall (deref previous-wall)]
-           (q/with-stroke [255 255 255]
-             (apply q/line p-wall)))
-         (q/with-stroke [255 0 0]
-           (apply q/line (ref-set previous-wall wall)))))))
+           (q/stroke 255 255 255)
+           (apply q/line p-wall))
+         (q/stroke 255 0 0)
+         (apply q/line (ref-set previous-wall wall))))))
 
   (q/defsketch sample-maze
-    :size (canvas-size grid size) 
+    :size (canvas-size grid size)
+    :settings #(q/smooth 8) 
     :setup setup
     :draw (do-draw (ref nil))))
 
