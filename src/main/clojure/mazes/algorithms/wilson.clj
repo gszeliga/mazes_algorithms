@@ -15,15 +15,15 @@
      (visiting-cell-id-emiter f))
 
    (defn loop-erased [unvisited]
-
      (defn build-path [current-cell-id path]
-
        (visiting current-cell-id)
-
        (if-not (contains? unvisited current-cell-id)
          path
-         (let [[row,col] current-cell-id
-               rand-neighbor (->> (neighbors row col grid :present) vals rand-nth to-id)
+         (let [[row,col]         current-cell-id
+               rand-neighbor     (->> (neighbors row col grid :present)
+                                      vals
+                                      rand-nth
+                                      to-id)
                rand-neighbor-pos (.indexOf path rand-neighbor)]
 
            ;Is it a loop?
@@ -37,7 +37,9 @@
        (build-path rand-cell [rand-cell])))
 
    (defn carve-passages [grid path]
-     (doseq [[from to] (map (fn [[f t]] [(apply cell-at grid f) (apply cell-at grid t)]) (partition 2 1 path))]
+     (doseq [[from to] (map (fn [[f t]] [(apply cell-at grid f)
+                                         (apply cell-at grid t)])
+                            (partition 2 1 path))]
        (wall-down from to)
        (link from to)))
 

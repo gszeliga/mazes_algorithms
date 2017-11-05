@@ -218,10 +218,10 @@
             ((walls-at grid size) (:row c) (:column c)))]
     (defn draw-cell [cell]
       (let [walls (walls-from cell)]
-        (doseq [[orientation nghr-cell] (neighbors cell grid)]
-          (when (or (nil? nghr-cell)
+        (doseq [[orientation ngh-cell] (neighbors cell grid)]
+          (when (or (nil? ngh-cell)
                     (not show-links)
-                    (not (linked? cell nghr-cell)))
+                    (not (linked? cell ngh-cell)))
             (when-let [wall (orientation walls)] 
               (apply q/line wall)))))))
 
@@ -249,6 +249,7 @@
 
   (q/defsketch sample-maze
     :size (canvas-size grid size)
+    :settings #(q/smooth 8)
     :setup setup
     :draw draw-path))
 
@@ -267,7 +268,8 @@
   (defn as-wall [side-a side-b]
     (let [neighbors-a      (apply #(neighbors %1 %2 grid :all) side-a)
           [at-orientation] (keys (filter #(when-some [cell (val %)]
-                                            (= (to-id cell) side-b)) neighbors-a))]
+                                            (= (to-id cell) side-b))
+                                         neighbors-a))]
       (at-orientation (walls-from side-a))))
 
   (defn do-draw [previous-wall]

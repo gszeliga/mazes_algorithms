@@ -17,7 +17,10 @@
    (defn hunt-unvisited [grid]
      (defn do-hunt [grid non-visited-cells]
        (when-let [cell (first non-visited-cells)]
-         (if-let [visited-neighbor  (->> (neighbors cell grid :linked) vals not-empty rand-nth)]
+         (if-let [visited-neighbor (->> (neighbors cell grid :linked)
+                                        vals
+                                        not-empty
+                                        rand-nth)]
            (do (link cell visited-neighbor)
                (wall-down cell visited-neighbor)
                cell)
@@ -28,7 +31,10 @@
    (defn walk [grid current-cell]
      (if (some? current-cell)
        (let [_ (visiting current-cell)]
-         (if-let [unvisited (->> (neighbors current-cell grid :not-linked) vals not-empty rand-nth)]
+         (if-let [unvisited (->> (neighbors current-cell grid :not-linked)
+                                 vals
+                                 not-empty
+                                 rand-nth)]
            (do (link current-cell unvisited)
                (wall-down current-cell unvisited)
                (recur grid  unvisited))

@@ -173,7 +173,10 @@
 
           (coords-fn [row column]
             (if (zero? row)
-              {:cw nil :ccw nil :outward nil :inward nil}
+              {:cw      nil
+               :ccw     nil
+               :outward [1 (* column (ratio-fn 1 grid))]
+               :inward  nil}
               (let [o-ratio (ratio-fn (inc row) grid)
                     c-ratio (ratio-fn row grid)]
                 {:cw      [row (inc column)]

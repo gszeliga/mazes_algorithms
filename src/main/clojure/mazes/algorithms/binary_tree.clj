@@ -14,10 +14,8 @@
      (visiting-cell-emiter f))
 
    (doseq [cell (cells-from grid)]
-
-     (visiting cell)
-
-     (let [neighbors (neighbors cell grid)
+     (let [ _         (visiting cell)
+           neighbors  (neighbors cell grid)
            candidates (filter some? [(:north neighbors)
                                      (:east neighbors)])]
        (when-not (empty? candidates)

@@ -13,20 +13,24 @@
 
 (defn poll!
   ([q] (poll! #{} q))
-  ([only-types q] (poll! 1 only-types q))
-  ([n-of-events only-types q]
+  ([accepted-types q] (poll! 1 accepted-types q))
+  ([n-of-events accepted-types q]
 
    (defn do-poll [accepts? collected]
      (if-not (= n-of-events (count collected))
        (if-let [{event-type :type :as event} (.poll q)]
-         (recur accepts? (if (accepts? event-type) (conj collected event) collected))
+         (recur accepts? (if (accepts? event-type)
+                           (conj collected event)
+                           collected))
          collected)
        collected))
 
    (defn just [events]
      (fn [e] (or (empty? events) (contains? events e))))
 
-   (do-poll (just (set (if-not (seq? only-types) [only-types] only-types))) [])))
+   (do-poll (just (set (if-not (seq? accepted-types)
+                         [accepted-types]
+                         accepted-types))) [])))
 
 (defn just-types
   [& only-types]

@@ -16,15 +16,12 @@
    (doseq [row (rows-from grid)]
 
      (defn traverse-cells [tmp remaining]
-
        (if-let [cell (first remaining)]
-
-         (let [cell-neighbors (neighbors cell grid)
-               eastern-neighbor (:east cell-neighbors)
+         (let [_                 (visiting cell)
+               cell-neighbors    (neighbors cell grid)
+               eastern-neighbor  (:east cell-neighbors)
                northern-neighbor (:north cell-neighbors)
-               visited (conj tmp cell)]
-
-           (visiting cell)
+               visited           (conj tmp cell)]
 
            (if (or (nil? eastern-neighbor)         ;did we reach the most eastern cell?
                    (and (some? northern-neighbor)  ;can we still move up?
