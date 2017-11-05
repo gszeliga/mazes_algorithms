@@ -22,6 +22,10 @@
                   (filter (comp some? cell-in))
                   (filter #(->> % cell-in links empty?)))
 
+     :dead-ends (comp
+                 (filter (comp some? cell-in))
+                 (filter #(->> % cell-in links count (= 1))))
+
      :all (map identity)}))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

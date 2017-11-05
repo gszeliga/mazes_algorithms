@@ -44,9 +44,6 @@
   (links [self] (keys (-> self :links deref))))
 
 (defn make-cell
-  [& {:keys [row column links dead] :or {dead false links {}}}]
+  [& {:keys [row column links dead]
+      :or {dead false links {}}}]
   (Cell. row column (ref links) dead))
-
-; (defn make-cell
-;    ([row column] (make-cell row column {}))
-;    ([row column links] (Cell. row column links)))
