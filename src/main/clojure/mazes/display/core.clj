@@ -6,7 +6,8 @@
            [quil.core :as q :include-macros true]
            [mazes.display.core-polar :refer (polar-coord-fn)]
            [mazes.display.core-sigma :refer (sigma-coord-fn)]
-           [mazes.display.core-triangle :refer (triangle-coord-fn)]))
+           [mazes.display.core-triangle :refer (triangle-coord-fn)]
+           [mazes.display.core-standard :refer (standard-coord-fn)]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;           Lists coordinates from all walls in a cell
@@ -15,19 +16,15 @@
 (defmulti ^:private walls-at 
   (fn [grid & _] (-> grid meta :type)))
 
-(defmethod walls-at :standard
-  ([grid size]
-   (fn [row col]
-     ;; we need to use the opposite row because of how quil works
-     (let [opposite-row (- (dec (n-rows grid)) row)
-           x1           (* col size)
-           y1           (* opposite-row size)
-           x2           (+ x1 size)
-           y2           (+ y1 size)]
-       {:east  [x2 y1 x2 y2]
-        :west  [x1 y1 x1 y2]
-        :north [x1 y1 x2 y1]
-        :south [x1 y2 x2 y2]}))))
+ (defmethod walls-at :standard
+   ([grid size]
+    (let [standard-coord (standard-coord-fn size)]
+      (fn [row col]
+        (let [[ws wn en es] (standard-coord row col)]
+          {:east  (into [] (concat es en))
+           :west  (into [] (concat ws wn))
+           :north (into [] (concat wn en))
+           :south (into [] (concat ws es))})))))
 
 (defmethod walls-at :polar
   ([grid size]
@@ -83,14 +80,7 @@
 
 (defmethod cell-center :standard
   [grid size]
-  (fn [row col]
-    ;;we need to use the opposite row because of how quil works
-    (let [opposite-row (- (dec (n-rows grid)) row)
-          x1           (* col size)
-          y1           (* opposite-row size)
-          center-x     (+ x1 (/ size 2))
-          center-y     (+ y1 (/ size 2))]
-      [center-x center-y])))
+  (cell-center-fn grid size (standard-coord-fn size)))
 
 (defmethod cell-center :polar
   [grid size]
