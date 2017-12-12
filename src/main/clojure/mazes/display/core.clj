@@ -16,18 +16,42 @@
 (defmulti ^:private walls-at 
   (fn [grid & _] (-> grid meta :type)))
 
- (defmethod walls-at :standard
-   ([grid size]
-    (let [standard-coord (standard-coord-fn size)]
-      (fn [row col]
-        (let [[ws wn en es] (standard-coord row col)]
-          {:east  (into [] (concat es en))
-           :west  (into [] (concat ws wn))
-           :north (into [] (concat wn en))
-           :south (into [] (concat ws es))})))))
+;; (defmethod walls-at :standard
+;;   ([grid size inset]
+;;    (let [standard-coord (standard-coord-fn size inset)]
+;;      (fn [row col]
+;;        (let [[ws wn en es]  (standard-coord row col)]
+;;          {:east  (into [] (concat es en))
+;;           :west  (into [] (concat ws wn))
+;;           :north (into [] (concat wn en))
+;;           :south (into [] (concat ws es))})))))
+
+(defmethod walls-at :standard
+  ([grid size inset]
+   (let [coords-fn (standard-coord-fn size inset)]
+     (fn [cell]
+       (let [{[x1 y1 x2 y2] :default, inset :inset} (coords-fn (:row cell)         
+                                                               (:column cell))]
+         (if (not-empty inset)
+           (let [[x1-in y1-in x2-in y2-in] inset]
+             {:linked 
+              {:east  [[x2-in y2-in x2 y2-in] [x2-in y1-in x2 y1-in]]
+               :west  [[x1 y2-in x1-in y2-in] [x1 y1-in x1-in y1-in]]
+               :north [[x1-in y2 x1-in y2-in] [x2-in y2 x2-in y2-in]]
+               :south [[x1-in y1-in x1-in y1] [x2-in y1-in x2-in y1]]}
+              :not-linked 
+              {:east  [[x1-in y2-in x2-in y1-in]]
+               :west  [[x1-in y2-in x1-in y1-in]]
+               :north [[x1-in y2-in x2-in y2-in]]
+               :south [[x1-in y1-in x2-in y1-in]]}})
+           {:not-linked 
+            {:east  [[x2 y2 x2 y1]]
+             :west  [[x1 y1 x1 y2]]
+             :north [[x1 y2 x2 y2]]
+             :south [[x1 y1 x2 y1]]}}))))))
 
 (defmethod walls-at :polar
-  ([grid size]
+  ([grid size inset]
    (let [polar-coord (polar-coord-fn grid size)]
      (fn [row col]
        (let [[[ax ay] [bx by] [cx cy] [dx dy]] (polar-coord row col)]
@@ -38,7 +62,7 @@
           :inward  [ax ay cx cy]})))))
 
 (defmethod walls-at :sigma
-  ([grid size]
+  ([grid size inset]
    (let [sigma-coord (sigma-coord-fn size)]
      (fn [row col]
        (let [[fwm nwn nen fem nes nws] (sigma-coord row col)]
@@ -51,7 +75,7 @@
           :southwest (into [] (concat nws fwm))})))))
 
 (defmethod walls-at :triangle
-  [grid size]
+  [grid size inset]
   (let [triangle-coord (triangle-coord-fn size)]
     (fn [row col]
       (let [upright?        (even? (+ row col))
@@ -204,20 +228,20 @@
 
 (defmethod draw-grid :default
   [grid size show-links]
-  (letfn [(walls-from [c]
-            ((walls-at grid size) (:row c) (:column c)))]
+  (let [walls-from-fn (walls-at grid size 1)]
     (defn draw-cell [cell]
-      (let [walls (walls-from cell)]
+      (let [walls (walls-from-fn cell)]
         (doseq [[orientation ngh-cell] (neighbors cell grid)]
-          (when (or (nil? ngh-cell)
-                    (not show-links)
-                    (not (linked? cell ngh-cell)))
-            (when-let [wall (orientation walls)] 
-              (apply q/line wall)))))))
+          (when (some? ngh-cell)
+            (let [state (if (or (not show-links)
+                                (not (linked? cell ngh-cell)))
+                          :not-linked
+                          :linked)]
+              (doseq [wall (get-in walls [state orientation] [])] 
+                (apply q/line wall)))))))
 
-
-  (doseq [cell (cells-from grid)]
-    (draw-cell cell)))
+    (doseq [cell (cells-from grid)]
+      (draw-cell cell))))
 
 (defn draw
   [grid & {:keys [size stroke with-path]
