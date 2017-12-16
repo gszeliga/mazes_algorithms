@@ -30,17 +30,18 @@
   ([grid size inset]
    (let [coords-fn (standard-coord-fn size inset)]
      (fn [cell]
-       (let [{[x1 y1 x2 y2] :default, inset :inset} (coords-fn (:row cell)         
-                                                               (:column cell))]
-         (if (not-empty inset)
-           (let [[x1-in y1-in x2-in y2-in] inset]
+       (let [{[x1 y1 x2 y2] :default,
+              inset-coords  :inset} (coords-fn (:row cell)
+                                               (:column cell))]
+         (if (not (zero? inset))
+           (let [[x1-in y1-in x2-in y2-in] inset-coords]
              {:linked 
               {:east  [[x2-in y2-in x2 y2-in] [x2-in y1-in x2 y1-in]]
                :west  [[x1 y2-in x1-in y2-in] [x1 y1-in x1-in y1-in]]
                :north [[x1-in y2 x1-in y2-in] [x2-in y2 x2-in y2-in]]
                :south [[x1-in y1-in x1-in y1] [x2-in y1-in x2-in y1]]}
               :not-linked 
-              {:east  [[x1-in y2-in x2-in y1-in]]
+              {:east  [[x2-in y2-in x2-in y1-in]]
                :west  [[x1-in y2-in x1-in y1-in]]
                :north [[x1-in y2-in x2-in y2-in]]
                :south [[x1-in y1-in x2-in y1-in]]}})
